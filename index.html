@@ -127,6 +127,94 @@ ul.clean{margin:6px 0;padding-left:18px}ul.clean li{margin:4px 0}
 .cmp .mini>b{position:absolute;top:-4px;bottom:-4px;width:2px;background:#0F172A;border-radius:1px}
 .cmp .note{font-size:12px;color:#64748B;margin:12px 2px 0;line-height:1.5}
 .cmp-eff .card{padding:16px}
+
+/* ===== AI-Powered Command Center ===== */
+header{position:relative}
+.hd-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.live{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:#166534;background:#DCFCE7;border-radius:999px;padding:6px 11px}
+.live i{width:7px;height:7px;border-radius:50%;background:#16A34A;animation:livepulse 1.8s infinite}
+@keyframes livepulse{0%{box-shadow:0 0 0 0 rgba(22,163,74,.55)}70%{box-shadow:0 0 0 8px rgba(22,163,74,0)}100%{box-shadow:0 0 0 0 rgba(22,163,74,0)}}
+.theme{border:1px solid #E2E8F0;background:#FFFFFF;color:#0F172A;border-radius:999px;padding:7px 13px;font:600 12.5px system-ui,sans-serif;cursor:pointer;transition:all .2s}
+.theme:hover{border-color:#DC2626;color:#DC2626}
+nav{top:10px;margin:12px auto 0;width:max-content;max-width:calc(100% - 24px);border:1px solid #E2E8F0;border-radius:999px;box-shadow:0 8px 24px rgba(15,23,42,.08);background:rgba(255,255,255,.92);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);padding:5px}
+nav button{border-radius:999px;transition:background .25s,color .25s,box-shadow .25s}
+nav button.on{background:#0F172A;color:#FFFFFF;box-shadow:none}
+nav button.on:hover{color:#FFFFFF}
+.card{border-radius:16px;transition:box-shadow .22s,border-color .22s}
+.card:hover{border-color:rgba(220,38,38,.22);box-shadow:0 0 0 4px rgba(220,38,38,.04),0 12px 28px rgba(15,23,42,.08)}
+.cmp .card,.cmp-card{border-radius:16px}
+.cmp-card{transition:box-shadow .22s,border-color .22s}
+.cmp-card:hover{border-color:rgba(220,38,38,.25);box-shadow:0 0 0 4px rgba(220,38,38,.05),0 12px 28px rgba(15,23,42,.09)}
+.cmp-bar{position:sticky;top:72px;z-index:4;background:rgba(255,255,255,.82);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 4px 16px rgba(15,23,42,.06)}
+.versus{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.versus .vs{font-size:11px;font-weight:800;color:#94A3B8;letter-spacing:.08em}
+.swap{border:1px solid #E2E8F0;background:#FFFFFF;color:#0F172A;border-radius:999px;width:32px;height:32px;cursor:pointer;font-size:15px;line-height:1;transition:all .2s}
+.swap:hover{border-color:#DC2626;color:#DC2626;transform:rotate(180deg)}
+/* khối AI */
+.ai-card{border-radius:16px;padding:1px;background:linear-gradient(120deg,#DC2626 0%,#0F172A 55%,#DC2626 100%);margin-bottom:16px}
+.ai-in{background:#FFFFFF;border-radius:15px;padding:16px 18px}
+.ai-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.ai-badge{background:#0F172A;color:#FFFFFF;font-size:11px;font-weight:800;border-radius:6px;padding:3px 7px;letter-spacing:.05em}
+.ai-head b{font-size:14px;color:#0F172A}
+.ai-sub{font-size:12px;color:#64748B}
+.ai-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.ai-list li{font-size:13.5px;color:#0F172A;line-height:1.5;padding:9px 12px;border-radius:10px;background:#F8FAFC;border:1px solid #E2E8F0}
+.ai-list li b{color:#DC2626}
+/* sparkline trong thẻ KPI */
+.spk{height:44px;margin-top:10px}
+.spk canvas{width:100%!important;height:44px!important}
+/* bảng: đầu bảng + thanh lệch hai chiều */
+.tbl-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.tbl-head h3{margin:0}
+#cmp-filter button{white-space:nowrap}
+.dv{display:block;position:relative;width:120px;height:6px;margin:6px 0 0 auto;background:#F1F5F9;border-radius:3px}
+.dv:before{content:'';position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:#CBD5E1}
+.dv i{position:absolute;top:0;bottom:0;border-radius:3px}
+.dv i.p{background:#16A34A}
+.dv i.n{background:#DC2626}
+.cmp-table tbody tr td{font-variant-numeric:tabular-nums}
+/* chế độ tối (Dark Studio #090D16) */
+body[data-theme=dark]{--bg:#090D16;--card:#121A28;--ink:#E2E8F0;--muted:#94A3B8;--line:#1E2A3D;background:#090D16;color:#E2E8F0}
+body[data-theme=dark] header{background:#0F172A;border-bottom-color:#1E2A3D}
+body[data-theme=dark] header h1{color:#F8FAFC}
+body[data-theme=dark] header .sub{color:#94A3B8}
+body[data-theme=dark] nav{background:rgba(18,26,40,.92);border-color:#1E2A3D}
+body[data-theme=dark] nav button{color:#94A3B8}
+body[data-theme=dark] nav button.on{background:#DC2626;color:#FFFFFF}
+body[data-theme=dark] .card{background:#121A28;border-color:#1E2A3D}
+body[data-theme=dark] .card:hover{border-color:rgba(220,38,38,.35)}
+body[data-theme=dark] h2,body[data-theme=dark] h3{color:#F8FAFC}
+body[data-theme=dark] .note,body[data-theme=dark] .s,body[data-theme=dark] .k{color:#94A3B8}
+body[data-theme=dark] .v{color:#F8FAFC}
+body[data-theme=dark] table th,body[data-theme=dark] table td{border-color:#1E2A3D;color:#E2E8F0}
+body[data-theme=dark] table th{background:#0F172A}
+body[data-theme=dark] .filter{background:#121A28;border-color:#1E2A3D}
+body[data-theme=dark] .filter select,body[data-theme=dark] .filter input{background:#0F172A;color:#E2E8F0;border-color:#1E2A3D}
+body[data-theme=dark] .cmp{background:#090D16}
+body[data-theme=dark] .cmp .card,body[data-theme=dark] .cmp-card,body[data-theme=dark] .cmp-bar{background:#121A28;border-color:#1E2A3D;color:#E2E8F0}
+body[data-theme=dark] .cmp-bar{background:rgba(18,26,40,.85)}
+body[data-theme=dark] .ai-in{background:#121A28}
+body[data-theme=dark] .ai-head b,body[data-theme=dark] .ai-list li{color:#E2E8F0}
+body[data-theme=dark] .ai-list li{background:#0F172A;border-color:#1E2A3D}
+body[data-theme=dark] .ai-sub{color:#94A3B8}
+body[data-theme=dark] .cmp-card .va,body[data-theme=dark] .cmp h2,body[data-theme=dark] .cmp h3{color:#F8FAFC}
+body[data-theme=dark] .cmp-card .vb,body[data-theme=dark] .cmp-card .sub{color:#94A3B8}
+body[data-theme=dark] .cmp select{background:#0F172A;color:#E2E8F0;border-color:#1E2A3D}
+body[data-theme=dark] .cmp .seg{background:#0F172A}
+body[data-theme=dark] .cmp .seg button{color:#94A3B8}
+body[data-theme=dark] .cmp .seg button.on{background:#DC2626;color:#FFFFFF}
+body[data-theme=dark] .cmp-table th{background:#0F172A;color:#94A3B8;border-color:#1E2A3D}
+body[data-theme=dark] .cmp-table td{color:#E2E8F0;border-color:#1E2A3D}
+body[data-theme=dark] .cmp-table tbody tr:hover td{background:#0F172A}
+body[data-theme=dark] .mini,body[data-theme=dark] .dv{background:#1E2A3D}
+body[data-theme=dark] .chip.up{background:rgba(22,101,52,.35);color:#86EFAC}
+body[data-theme=dark] .chip.dn{background:rgba(153,27,27,.35);color:#FCA5A5}
+body[data-theme=dark] .chip.fl{background:#1E2A3D;color:#94A3B8}
+body[data-theme=dark] .theme{background:#121A28;color:#E2E8F0;border-color:#1E2A3D}
+body[data-theme=dark] .swap{background:#121A28;color:#E2E8F0;border-color:#1E2A3D}
+body[data-theme=dark] .vs{color:#64748B}
+body[data-theme=dark] .cmp-bar label{color:#94A3B8}
+body[data-theme=dark] .chart{color:#94A3B8}
 .filter{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin-bottom:12px}
 .filter label{font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
 .filter select,.filter input{font:14px system-ui,sans-serif;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
@@ -139,6 +227,10 @@ button.btn{background:#DC2626;color:var(--card);border:0;padding:9px 14px;border
   <div>
     <h1>Báo cáo kinh doanh của Đại Bách Lâm</h1>
     <div class="sub" id="meta"></div>
+  </div>
+  <div class="hd-right">
+    <span class="live"><i></i>AI Live Sync</span>
+    <button id="themeBtn" class="theme" type="button">☾ Tối</button>
   </div>
 </header>
 <nav id="nav">
@@ -257,8 +349,12 @@ button.btn{background:#DC2626;color:var(--card);border:0;padding:9px 14px;border
           <button data-m="target" type="button">Thực tế với chỉ tiêu</button>
         </div>
         <span class="sep"></span>
-        <label><span class="dot a"></span>Đối tượng A <select id="cmp-a"></select></label>
-        <label><span class="dot b"></span>Đối tượng B <select id="cmp-b"></select></label>
+        <div class="versus">
+          <label class="vs-a"><span class="dot a"></span><select id="cmp-a" aria-label="Đối tượng A"></select></label>
+          <span class="vs">VS</span>
+          <label class="vs-b"><span class="dot b"></span><select id="cmp-b" aria-label="Đối tượng B"></select></label>
+          <button id="cmp-swap" class="swap" type="button" title="Đổi A ↔ B">⇄</button>
+        </div>
         <span class="sep"></span>
         <div class="seg" id="cmp-view">
           <button data-v="abs" class="on" type="button">Số tuyệt đối</button>
@@ -266,12 +362,21 @@ button.btn{background:#DC2626;color:var(--card);border:0;padding:9px 14px;border
         </div>
       </div>
       <div class="cmp-cards" id="cmp-cards"></div>
+      <div class="ai-card"><div class="ai-in">
+        <div class="ai-head"><span class="ai-badge">AI</span><b>AI Phân tích &amp; Cảnh báo nhanh</b><span class="ai-sub">tự cập nhật theo lựa chọn A và B</span></div>
+        <ul class="ai-list" id="cmp-ai"></ul>
+      </div></div>
       <div class="cmp-grid">
         <div class="card"><h3 id="cmp-bar-title">So sánh từng chỉ số</h3><div class="chart" style="height:300px"><canvas id="c-cmp-bar"></canvas></div></div>
         <div class="card" id="cmp-line-box"><h3 id="cmp-line-title">Lũy kế theo ngày</h3><div class="chart" style="height:300px"><canvas id="c-cmp-line"></canvas></div></div>
       </div>
       <div class="card">
-        <h3>Bảng chênh lệch chi tiết</h3>
+        <div class="tbl-head"><h3>Bảng chênh lệch chi tiết</h3>
+          <div class="seg" id="cmp-filter">
+            <button data-f="all" class="on" type="button">Tất cả</button>
+            <button data-f="up" type="button">Tăng trưởng</button>
+            <button data-f="dn" type="button">Cảnh báo / giảm</button>
+          </div></div>
         <div class="tbl-wrap"><table class="cmp-table" id="cmp-table"></table></div>
       </div>
       <p class="note" id="cmp-note"></p>
@@ -763,7 +868,7 @@ function renderSoSanhLegacy(){
 }
 
 /* ---------- SO SÁNH (thiết kế mới: 3 trục, thẻ đối chiếu, biểu đồ, bảng chênh lệch) ---------- */
-const CM = {mode: 'months', a: null, b: null, view: 'abs'};
+const CM = {mode: 'months', a: null, b: null, view: 'abs', f: 'all'};
 const brById = id => R.byBranch.find(b => b.id === id);
 function cmMonths(){
   const list = LS.map(x => ({id: x.m, label: `Tháng ${+x.m.slice(5)}/2026`, days: new Date(+x.m.slice(0,4), +x.m.slice(5,7), 0).getDate(), ak: x.ak, dA: x.dA, tong: x.tong ?? null, nov: false}));
@@ -836,17 +941,18 @@ function renderCmp(){
   });
   const A = cmNameA(), B = cmNameB();
   // thẻ đối chiếu
-  $('#cmp-cards').innerHTML = disp.slice(0, 4).map(r => `<div class="card cmp-card">
+  $('#cmp-cards').innerHTML = disp.slice(0, 4).map((r, i) => `<div class="card cmp-card">
       <div class="lbl">${esc(r.label)}</div>
       <div class="vals">
         <div><div class="va">${fv(r.va, r.f)}</div><div class="sub">${esc(A)}</div></div>
         <div style="text-align:right"><div class="vb">${fv(r.vb, r.f)}</div><div class="sub">${esc(B)}</div></div>
       </div>
+      ${spkHtml(r, i)}
       <div style="margin-top:10px">${cmChip(r)}</div>
     </div>`).join('');
   // bảng chênh lệch
   $('#cmp-table').innerHTML = `<tr><th>Chỉ số</th><th>${esc(A)}</th><th>${esc(B)}</th><th>Chênh lệch</th><th>% &amp; tiến độ</th><th>Đánh giá</th></tr>` +
-    disp.map(r => {
+    disp.filter(r => CM.f === 'all' || r.trend === CM.f).map(r => {
       const max = Math.max(r.a || 0, r.b || 0) || 1;
       const wa = r.a == null ? 0 : Math.min(100, Math.max(0, (r.a / max) * 100));
       const wb = r.b == null ? null : Math.min(100, Math.max(0, (r.b / max) * 100));
@@ -858,7 +964,7 @@ function renderCmp(){
         <td>${esc(r.label)}</td>
         <td><b style="color:#1E3A8A">${fv(r.va, r.f)}</b></td>
         <td style="color:#64748B">${fv(r.vb, r.f)}</td>
-        <td>${dtxt}</td>
+        <td>${dtxt}${divBar(r)}</td>
         <td>${ptxt}<div class="mini"><i style="width:${wa}%;background:#1E3A8A"></i>${wb != null ? `<b style="left:${wb}%"></b>` : ''}</div></td>
         <td>${cmChip(r)}</td>
       </tr>`;
@@ -867,12 +973,12 @@ function renderCmp(){
   const bars = disp.filter(r => r.ok && r.fmt !== 'n' && (pv || r.fmt !== 'p'));
   $('#cmp-bar-title').textContent = pv ? `Tỷ lệ so với ${B} (= 100%)` : 'So sánh từng chỉ số (VND)';
   mk('c-cmp-bar', {type:'bar', data:{labels: bars.map(r => r.label), datasets:[
-    {label: A, data: bars.map(r => r.va), backgroundColor:'#1E3A8A', borderRadius:6, borderSkipped:false, barPercentage:.62, categoryPercentage:.78},
-    {label: B, data: bars.map(r => r.vb), backgroundColor:'#94A3B8', borderRadius:6, borderSkipped:false, barPercentage:.62, categoryPercentage:.78}
+    {label: A, data: bars.map(r => r.va), backgroundColor: barGrad('#2563EB', '#1E3A8A'), borderRadius:6, borderSkipped:false, barPercentage:.62, categoryPercentage:.78},
+    {label: B, data: bars.map(r => r.vb), backgroundColor: barGrad('#CBD5E1', '#94A3B8'), borderRadius:6, borderSkipped:false, barPercentage:.62, categoryPercentage:.78}
   ]}, options:{...OPT, scales:{
       x:{grid:{display:false}, border:{display:false}, ticks:{color:'#64748B', font:{size:11}, maxRotation:0, autoSkip:false}},
       y:{grid:{color:'#E2E8F0', borderDash:[3,4], drawTicks:false}, border:{display:false}, ticks:{color:'#64748B', font:{size:11}, padding:8, callback: v => pv ? (v*100).toFixed(0) + '%' : SH(v)}}},
-    plugins:{legend:{position:'bottom'}, tooltip:{callbacks:{label: c => `${c.dataset.label}: ${pv ? P(c.parsed.x) : SH(c.parsed.x)}`}}}}});
+    plugins:{legend:{position:'bottom'}, tooltip:{callbacks:{label: c => `${c.dataset.label}: ${pv ? P(c.parsed.y) : SH(c.parsed.y)}`}, backgroundColor:'rgba(255,255,255,0.94)', titleColor:'#0F172A', bodyColor:'#334155', borderColor:'#E2E8F0', borderWidth:1, padding:12, cornerRadius:10, boxPadding:6, usePointStyle:true}}}});
   // biểu đồ đường: lũy kế theo ngày
   const cumul = arr => { let c = 0; return arr.map(d => (c += d.netRevenue)); };
   let labels = [], series = null, title = '';
@@ -945,6 +1051,7 @@ function renderCmp(){
     kpi('Tỷ lệ hàng hoàn', P(t.returnRate), `${SH(t.returnsValue)} hàng hoàn`),
     kpi('AOV (đơn trung bình)', SH(t.aov), `${N(t.ordersSuccess)} đơn thành công`)
   ].join('');
+  cmExtras(disp);
 }
 function cmSync(){
   document.querySelectorAll('#cmp-mode button').forEach(b => b.classList.toggle('on', b.dataset.m === CM.mode));
@@ -971,7 +1078,108 @@ function renderSoSanh(){
   document.querySelectorAll('#cmp-view button').forEach(b => b.onclick = () => { CM.view = b.dataset.v; cmSync(); });
   $('#cmp-a').onchange = e => { CM.a = e.target.value; cmSync(); };
   $('#cmp-b').onchange = e => { CM.b = e.target.value; cmSync(); };
+  $('#cmp-swap').onclick = () => { if (CM.mode === 'target') return; [CM.a, CM.b] = [CM.b, CM.a]; cmSync(); };
+  document.querySelectorAll('#cmp-filter button').forEach(b => b.onclick = () => {
+    CM.f = b.dataset.f;
+    document.querySelectorAll('#cmp-filter button').forEach(x => x.classList.toggle('on', x === b));
+    renderCmp();
+  });
   cmSync();
+}
+
+/* ---------- AI COMMAND CENTER: sparkline, thanh lệch, khối AI, chế độ sáng/tối ---------- */
+const barGrad = (c1, c2) => ctx => {
+  const {chart} = ctx, area = chart.chartArea;
+  if (!area) return c2;
+  const g = chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
+  g.addColorStop(0, c1); g.addColorStop(1, c2);
+  return g;
+};
+function spkSeries(label){
+  if (CM.mode === 'months') { const X = cmMonth(CM.a); if (!X || !X.nov) return null; }
+  let src = null;
+  if (/Đông Anh/.test(label)) src = brById('LINING_DONG_ANH')?.daily;
+  else if (/Kho An Khánh/.test(label)) src = brById('KHO_AN_KHANH')?.daily;
+  else if (CM.mode === 'months') src = R.daily;
+  else if (/Doanh số|TB|Nhịp|thực tế/.test(label)) src = brById(CM.a)?.daily;
+  if (!src || !src.length) return null;
+  return {labels: src.map(d => dmy(d.date)), data: src.map(d => d.netRevenue)};
+}
+function spkHtml(r, i){
+  return spkSeries(r.label) ? `<div class="spk"><canvas id="cmp-spark-${i}"></canvas></div>` : '';
+}
+function divBar(r){
+  if (r.pct == null) return '';
+  const w = Math.min(1, Math.abs(r.pct) / 0.5) * 50;
+  const pos = r.pct >= 0;
+  return `<span class="dv"><i class="${pos ? 'p' : 'n'}" style="${pos ? 'left:50%' : 'right:50%'};width:${w}%"></i></span>`;
+}
+const cmPct = v => (v >= 0 ? '+' : '') + (v*100).toFixed(1).replace('.', ',') + '%';
+function cmExtras(disp){
+  disp.slice(0, 4).forEach((r, i) => {
+    const s = spkSeries(r.label);
+    if (!s) return;
+    mk('cmp-spark-' + i, {type:'line', data:{labels: s.labels, datasets:[{data: s.data, borderColor:'#DC2626', borderWidth:1.8, pointRadius:0, tension:.35, fill:false}]},
+      options:{responsive:true, maintainAspectRatio:false, animation:false, plugins:{legend:{display:false}, tooltip:{enabled:false}}, scales:{x:{display:false}, y:{display:false}}, events:[]}});
+  });
+  cmInsights(disp);
+}
+function cmInsights(disp){
+  const ul = document.getElementById('cmp-ai');
+  if (!ul) return;
+  const A = cmNameA(), B = cmNameB();
+  const lines = [];
+  // 1. điểm sáng: hạng mục tăng mạnh nhất (chiều tốt)
+  const best = disp.filter(r => r.pct != null && r.good === 'up' && r.fmt !== 'p').sort((x, y) => y.pct - x.pct)[0];
+  lines.push(best && best.pct > 0
+    ? `<b>Điểm sáng:</b> ${esc(best.label)} tăng mạnh nhất, ${cmPct(best.pct)} so với ${esc(B)}. Đây là mảng đang kéo doanh thu đi lên.`
+    : `<b>Điểm sáng:</b> chưa có hạng mục nào tăng so với ${esc(B)} trong lựa chọn này.`);
+  // 2. điểm nghẽn: hàng hoàn tăng + chi phí QC vượt ngưỡng
+  let nghen = null;
+  const hoan = disp.find(r => r.good === 'down' && r.pct != null && r.pct > 0.02);
+  if (hoan) nghen = `${esc(hoan.label)} tăng ${cmPct(hoan.pct)} so với ${esc(B)}, cần kiểm tra lý do hoàn hàng.`;
+  const over = (ads.daily || []).filter(d => (d.cost || 0) > ads.dailyCap && d.adsRevenue != null);
+  if (over.length) {
+    const c = over.reduce((a, d) => a + d.cost, 0), rv = over.reduce((a, d) => a + d.adsRevenue, 0);
+    const roi = c ? rv / c : 0;
+    const extra = `Chi phí QC vượt ${SH(ads.dailyCap)}/ngày ở ${over.length} ngày có số liệu, ROI ${roi.toFixed(1).replace('.', ',')}x ${roi < ads.roasTarget ? `dưới mục tiêu ${ads.roasTarget}x` : 'vẫn đạt mục tiêu'}.`;
+    nghen = nghen ? nghen + ' ' + extra : extra;
+  }
+  lines.push(`<b>Điểm nghẽn:</b> ${nghen || 'không phát hiện điểm nghẽn lớn trong lựa chọn này.'}`);
+  // 3. dự báo cuối tháng theo nhịp hiện tại so với chỉ tiêu
+  let act = null, tg = null;
+  if (CM.mode === 'target' || CM.mode === 'kho') {
+    const X = brById(CM.a);
+    if (X && X.target) { act = X.metrics.netRevenue; tg = X.target.netRevenue; }
+  } else {
+    const X = cmMonth(CM.a);
+    if (X && X.nov) {
+      const ak = brById('KHO_AN_KHANH'), dn = brById('LINING_DONG_ANH');
+      if (ak && dn && ak.target && dn.target) { act = ak.metrics.netRevenue + dn.metrics.netRevenue; tg = ak.target.netRevenue + dn.target.netRevenue; }
+    }
+  }
+  if (act != null && tg) {
+    const avg = act / asOfDay, proj = avg * meta.daysInPeriod, rem = meta.daysInPeriod - asOfDay;
+    const need = rem > 0 ? (tg - act) / rem : 0;
+    lines.push(`<b>Dự báo &amp; hành động:</b> với nhịp ${SH(avg)}/ngày, cuối tháng ước đạt ${SH(proj)}, tức ${(proj / tg * 100).toFixed(0)}% chỉ tiêu ${SH(tg)}. ${proj >= tg ? 'Đang đủ nhịp để đạt chỉ tiêu, giữ đà bán hàng.' : `Cần bình quân ${SH(need)}/ngày trong ${rem} ngày còn lại để đạt chỉ tiêu.`}`);
+  } else {
+    lines.push('<b>Dự báo &amp; hành động:</b> chọn tháng 11 hoặc chế độ thực tế với chỉ tiêu để xem dự báo cuối tháng.');
+  }
+  ul.innerHTML = lines.map(l => `<li>${l}</li>`).join('');
+}
+function setupTheme(){
+  let saved = 'light';
+  try { saved = localStorage.getItem('dbl-theme') || 'light'; } catch (e) {}
+  const apply = (m) => {
+    document.body.dataset.theme = m;
+    $('#themeBtn').textContent = m === 'dark' ? '☀ Sáng' : '☾ Tối';
+    Chart.defaults.color = m === 'dark' ? '#94A3B8' : '#64748B';
+    Chart.defaults.borderColor = m === 'dark' ? '#1E2A3D' : '#E2E8F0';
+    try { localStorage.setItem('dbl-theme', m); } catch (e) {}
+    Object.values(charts).forEach(c => c.update());
+  };
+  $('#themeBtn').onclick = () => apply(document.body.dataset.theme === 'dark' ? 'light' : 'dark');
+  apply(saved);
 }
 
 /* ---------- CẬP NHẬT ---------- */
@@ -1007,7 +1215,7 @@ document.querySelectorAll('nav button').forEach(b => b.onclick = () => show(b.da
 window.addEventListener('hashchange', () => show(location.hash.slice(1)));
 
 renderOver(); renderKho(); renderKenh(); renderNv(); renderDon(); renderQc(); renderNam(); renderKt();
-renderLs(); renderSoSanh(); renderCu(); setupFilter(); applyFilter();
+renderLs(); renderSoSanh(); renderCu(); setupFilter(); applyFilter(); setupTheme();
 show(location.hash.slice(1));
 })();
 </script>
