@@ -215,6 +215,16 @@ body[data-theme=dark] .swap{background:#121A28;color:#E2E8F0;border-color:#1E2A3
 body[data-theme=dark] .vs{color:#64748B}
 body[data-theme=dark] .cmp-bar label{color:#94A3B8}
 body[data-theme=dark] .chart{color:#94A3B8}
+/* thẻ KPI quảng cáo */
+.qc-kpis{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}
+@media(max-width:860px){.qc-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.qc-kpi{position:relative;padding:18px;min-height:132px}
+.qc-kpi .lbl{font-size:12px;font-weight:600;color:#64748B;padding-right:110px;line-height:1.35}
+.qc-kpi .big{font-size:34px;font-weight:800;color:#0F172A;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-top:10px;line-height:1.1}
+.qc-kpi .sub{font-size:12px;color:#64748B;margin-top:8px;line-height:1.4}
+.badge-r{position:absolute;top:14px;right:14px}
+body[data-theme=dark] .qc-kpi .big{color:#F8FAFC}
+body[data-theme=dark] .qc-kpi .lbl,body[data-theme=dark] .qc-kpi .sub{color:#94A3B8}
 .filter{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin-bottom:12px}
 .filter label{font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
 .filter select,.filter input{font:14px system-ui,sans-serif;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
@@ -292,12 +302,17 @@ button.btn{background:#DC2626;color:var(--card);border:0;padding:9px 14px;border
   </section>
 
   <section class="tab" id="t-qc">
-    <div class="grid" id="qc-kpi"></div>
-    <h2>Chi phí QC theo ngày so với hạn mức 6 triệu/ngày</h2>
-    <div class="card"><div class="chart"><canvas id="c-qc"></canvas></div></div>
-    <h2>Chi tiết theo ngày</h2>
-    <div class="card wrap"><table id="qc-table"></table></div>
-    <p class="note" id="qc-note"></p>
+    <div class="cmp">
+      <div class="grid qc-kpis" id="qc-kpi"></div>
+      <div class="ai-card"><div class="ai-in">
+        <div class="ai-head"><span class="ai-badge">AI</span><b>AI Tối ưu Ngân sách Quảng cáo</b><span class="ai-sub">tự tính từ số liệu đang hiển thị</span></div>
+        <ul class="ai-list" id="qc-ai"></ul>
+      </div></div>
+      <div class="card"><h3>Chi phí QC theo ngày, hạn mức 6 triệu và ROAS ngày</h3><div class="chart" style="height:320px"><canvas id="c-qc"></canvas></div></div>
+      <div class="card" style="margin-top:16px"><div class="tbl-head"><h3>Hiệu quả theo kênh quảng cáo</h3></div><div class="tbl-wrap"><table class="cmp-table" id="qc-chan"></table></div></div>
+      <div class="card" style="margin-top:16px"><div class="tbl-head"><h3>Chi tiết theo ngày</h3></div><div class="tbl-wrap"><table class="cmp-table" id="qc-table"></table></div></div>
+      <p class="note" id="qc-note"></p>
+    </div>
   </section>
 
   <section class="tab" id="t-nam">
@@ -584,7 +599,7 @@ function renderQcOld(){
 }
 
 /* ---------- QUẢNG CÁO (đầy đủ) ---------- */
-function renderQc(){
+function renderQcPrev(){
   const days = ads.daily || [];
   const withRev = days.filter(d => d.adsRevenue != null);
   const spent = days.reduce((a,d) => a + (d.cost||0), 0);
@@ -619,6 +634,79 @@ function renderQc(){
       return `<tr><td>${dmy(d.date)}</td><td>${SH(d.cost)}</td><td>${d.liveCost == null ? '—' : SH(d.liveCost)}</td><td>${d.productCost == null ? '—' : SH(d.productCost)}</td><td>${d.adsRevenue == null ? '—' : SH(d.adsRevenue)}</td><td>${d.orders == null ? '—' : N(d.orders)}</td><td>${d.roi == null ? '—' : d.roi.toFixed(1).replace('.',',') + 'x'}</td><td>${st}</td></tr>`;
     }).join('') + `<tr class="tot"><td>Tổng</td><td>${SH(spent)}</td><td>${SH(liveSum)}</td><td>${SH(prodSum)}</td><td>${SH(revSum)}</td><td>${N(ordSum)}</td><td>${costRev ? (revSum/costRev).toFixed(1).replace('.',',') + 'x' : '—'}</td><td></td></tr>`;
   $('#qc-note').innerHTML = `${esc(ads.note || '')}<br>Doanh thu, đơn và ROI theo ngày chỉ có từ ${dmy(ads.dataFrom)}; các ngày trước đó chỉ có chi phí. ROI của ngày gần nhất có thể còn thay đổi vì đơn đang giao.<br>Thuế QC: ${tax ? `${SH(tax.estimated)} (ước tính, kỳ ${tax.period}, gồm cả chi phí chưa kịp ghi theo ngày)` : 'chưa đọc được từ TikTok Ads'}.`;
+}
+
+/* ---------- QUẢNG CÁO: COMMAND CENTER ---------- */
+function renderQc(){
+  const days = ads.daily || [];
+  const cap = ads.dailyCap, roasT = ads.roasTarget;
+  const spent = days.reduce((a, d) => a + (d.cost || 0), 0);
+  const budget = cap * days.length;
+  const rev = days.filter(d => d.adsRevenue != null);
+  const revQc = rev.reduce((a, d) => a + d.adsRevenue, 0);
+  const costRev = rev.reduce((a, d) => a + (d.cost || 0), 0);
+  const ord = rev.reduce((a, d) => a + (d.orders || 0), 0);
+  const roas = costRev ? revQc / costRev : null;
+  const cir = revQc ? costRev / revQc : null;
+  const cirAll = t.netRevenue ? spent / t.netRevenue : null;
+  const cpo = ord ? costRev / ord : null;
+  const roasChip = roas == null ? '' : roas >= 4 ? '<span class="chip up">Đạt chuẩn ≥ 4x</span>' : roas < 2.5 ? '<span class="chip dn">Cảnh báo &lt; 2,5x</span>' : '<span class="chip fl">Trung bình</span>';
+  const budChip = spent > budget ? '<span class="chip dn">Vượt ngân sách</span>' : '<span class="chip up">Trong ngân sách</span>';
+  const qcCard = (lbl, val, sub, chip) => `<div class="card qc-kpi"><div class="lbl">${lbl}</div>${chip ? `<div class="badge-r">${chip}</div>` : ''}<div class="big">${val}</div><div class="sub">${sub}</div></div>`;
+  $('#qc-kpi').innerHTML = [
+    qcCard('Tổng chi phí QC', SH(spent), `Ngân sách ${SH(budget)} (${days.length} ngày × hạn mức ${SH(cap)}) · đã dùng ${P(spent / budget)}`, budChip),
+    qcCard('Doanh thu từ QC', SH(revQc), `${rev.length} ngày có số liệu, từ ${dmy(ads.dataFrom)} · ${N(ord)} đơn`, ''),
+    qcCard('ROAS', roas == null ? '—' : roas.toFixed(1).replace('.', ',') + 'x', `Doanh thu QC ÷ chi phí QC · mục tiêu ${roasT}x`, roasChip),
+    qcCard('CIR &amp; CPO', cir == null ? '—' : P(cir), `CPO ${cpo == null ? '—' : SH(cpo)} / đơn · ${P(cirAll)} trên tổng doanh thu công ty`, '')
+  ].join('');
+  // khối AI: 3 hành động từ số liệu đang hiển thị
+  const ai = [];
+  ai.push(roas != null
+    ? `<b>ROAS:</b> TikTok Ads đạt ${roas.toFixed(1).replace('.', ',')}x trong ${rev.length} ngày từ ${dmy(ads.dataFrom)}, ${roas >= 4 ? 'trên chuẩn 4x' : 'dưới chuẩn 4x'}. Hiện chỉ có một kênh có số liệu chi phí nên chưa so được kênh nào nên tăng ngân sách. Cần bổ sung chi phí Facebook Ads và Shopee Ads.`
+    : '<b>ROAS:</b> chưa đủ số liệu doanh thu quảng cáo để tính.');
+  const over = rev.filter(d => (d.cost || 0) > cap), norm = rev.filter(d => (d.cost || 0) <= cap);
+  const cpoOf = arr => { const c = arr.reduce((a, d) => a + (d.cost || 0), 0), o = arr.reduce((a, d) => a + (d.orders || 0), 0); return o ? c / o : null; };
+  const cpoO = cpoOf(over), cpoN = cpoOf(norm);
+  if (over.length && cpoO != null && cpoN != null) {
+    const dates = over.map(d => dmy(d.date)).join(', ');
+    const up = cpoO / cpoN - 1;
+    ai.push(up > 0.1
+      ? `<b>Cảnh báo chi tiêu:</b> ${over.length} ngày vượt 6 triệu (${dates}) có CPO ${SH(cpoO)}, cao hơn ${P(up, 0)} so với các ngày còn lại (${SH(cpoN)}). Nên giảm chi những ngày này về dưới hạn mức.`
+      : `<b>Chi tiêu vượt ngưỡng:</b> ${over.length} ngày vượt 6 triệu (${dates}) có CPO ${SH(cpoO)}, gần bằng các ngày còn lại (${SH(cpoN)}). Vượt ngưỡng hiện chưa làm giảm hiệu quả.`);
+  } else {
+    ai.push('<b>Chi tiêu vượt ngưỡng:</b> chưa đủ dữ liệu để so CPO các ngày vượt 6 triệu với ngày còn lại.');
+  }
+  ai.push(`<b>Ngân sách:</b> đã chi ${SH(spent)} trên ngân sách ${SH(budget)} (${P(spent / budget)}). ${spent > budget
+    ? `Đang vượt ${SH(spent - budget)}; các ngày còn lại nên giữ dưới hạn mức để về đúng kế hoạch.`
+    : `Còn dư ${SH(budget - spent)}; có thể tăng chi cho các ngày có ROAS cao.`}`);
+  $('#qc-ai').innerHTML = ai.map(x => `<li>${x}</li>`).join('');
+  // biểu đồ kết hợp: cột chi phí, đường hạn mức, đường ROAS ngày
+  const overFlag = days.map(d => (d.cost || 0) > cap);
+  const roasDaily = days.map(d => d.adsRevenue != null && d.cost ? d.adsRevenue / d.cost : null);
+  mk('c-qc', {type:'bar', data:{labels: days.map(d => dmy(d.date)), datasets:[
+    {label:'Chi phí QC (tr)', data: days.map(d => (d.cost || 0) / 1e6), backgroundColor: overFlag.map(o => o ? '#DC2626' : '#1E3A8A'), borderRadius:6, borderSkipped:false, barPercentage:.6, categoryPercentage:.8, order:2},
+    {type:'line', label:'Hạn mức 6 tr/ngày', data: days.map(() => cap / 1e6), borderColor:'#DC2626', borderDash:[6,5], borderWidth:1.6, pointRadius:0, fill:false, yAxisID:'y', order:1},
+    {type:'line', label:'ROAS ngày (x)', data: roasDaily, borderColor:'#16A34A', backgroundColor:'#16A34A', borderWidth:2.5, tension:.3, pointRadius:3, spanGaps:true, yAxisID:'y1', order:0}
+  ]}, options:{...OPT, scales:{
+      x:{grid:{display:false}, border:{display:false}, ticks:{color:'#64748B', font:{size:11}, maxRotation:0, autoSkip:true}},
+      y:{position:'left', beginAtZero:true, grid:{color:'#E2E8F0', borderDash:[3,4], drawTicks:false}, border:{display:false}, ticks:{color:'#64748B', font:{size:11}, callback: v => v + ' tr'}},
+      y1:{position:'right', beginAtZero:true, grid:{display:false}, border:{display:false}, ticks:{color:'#16A34A', font:{size:11}, callback: v => v + 'x'}}},
+    plugins:{legend:{position:'bottom'}, tooltip:{backgroundColor:'rgba(255,255,255,0.94)', titleColor:'#0F172A', bodyColor:'#334155', borderColor:'#E2E8F0', borderWidth:1, padding:12, cornerRadius:10, boxPadding:6, usePointStyle:true,
+      callbacks:{label: c => c.dataset.yAxisID === 'y1' ? `${c.dataset.label}: ${c.parsed.y == null ? '—' : c.parsed.y.toFixed(1).replace('.', ',') + 'x'}` : `${c.dataset.label}: ${c.parsed.y.toFixed(2).replace('.', ',')} tr`}}}}});
+  // bảng theo kênh: TikTok có số liệu thật; Facebook và Shopee chờ dữ liệu
+  const pend = name => `<tr><td>${name}</td><td colspan="7" style="text-align:left;color:#94A3B8">chưa có dữ liệu chi phí quảng cáo</td></tr>`;
+  $('#qc-chan').innerHTML = `<tr><th>Kênh QC</th><th>Ngân sách đã chi</th><th>Tỷ trọng chi</th><th>Số đơn</th><th>Doanh thu mang về</th><th>CPO</th><th>ROAS</th><th>Đánh giá</th></tr>` +
+    `<tr><td><b>TikTok Ads</b></td><td>${SH(spent)}</td><td>100%*</td><td>${N(ord)}*</td><td>${SH(revQc)}</td><td>${cpo == null ? '—' : SH(cpo)}</td><td>${roas == null ? '—' : roas.toFixed(1).replace('.', ',') + 'x'}</td><td>${roasChip || '—'}</td></tr>` +
+    pend('Facebook Ads') + pend('Shopee Ads');
+  // bảng theo ngày
+  $('#qc-table').innerHTML = `<tr><th>Ngày</th><th>Chi phí</th><th>Vượt 6 tr?</th><th>Doanh thu QC</th><th>Đơn</th><th>ROAS</th><th>CPO</th></tr>` +
+    days.map(d => {
+      const r = d.adsRevenue != null && d.cost ? d.adsRevenue / d.cost : null;
+      const c = d.adsRevenue != null && d.orders ? (d.cost || 0) / d.orders : null;
+      const rc = r == null ? '' : r >= 4 ? '<span class="chip up">' : r < 2.5 ? '<span class="chip dn">' : '<span class="chip fl">';
+      return `<tr><td>${dmy(d.date)}</td><td>${SH(d.cost)}</td><td>${(d.cost || 0) > cap ? '<span class="chip dn">Có</span>' : '—'}</td><td>${d.adsRevenue == null ? '—' : SH(d.adsRevenue)}</td><td>${d.orders == null ? '—' : N(d.orders)}</td><td>${r == null ? '—' : rc + r.toFixed(1).replace('.', ',') + 'x</span>'}</td><td>${c == null ? '—' : SH(c)}</td></tr>`;
+    }).join('');
+  $('#qc-note').innerHTML = `Nguồn: chi phí từ báo cáo quảng cáo hằng ngày (TikTok Ads). Doanh thu và đơn quảng cáo lấy từ TikTok Ads, chưa đối chiếu với nhanh.vn. Ngày trước ${dmy(ads.dataFrom)} chỉ có chi phí. Facebook Ads và Shopee Ads chưa có số liệu, nên tổng chi phí và ngân sách mới chỉ tính cho TikTok. * số đơn và doanh thu chỉ từ ${dmy(ads.dataFrom)}.`;
 }
 
 /* ---------- NĂM ---------- */
@@ -1195,7 +1283,7 @@ function renderCu(){
   ];
   $('#cu-log').innerHTML = `<tr><th>Dữ liệu đến</th><th>Nội dung</th></tr>` + log.map(([d,t]) => `<tr><td>${d}</td><td style="white-space:normal;text-align:left">${esc(t)}</td></tr>`).join('');
   $('#cu-copy').onclick = async () => {
-    const text = 'Cập nhật báo cáo kinh doanh của Đại Bách Lâm: lấy dữ liệu mới nhất từ nhanh.vn đến hôm qua, dựng lại báo cáo và cập nhật trang web.';
+    const text = 'Cập nhật báo cáo kinh doanh của Đại Bách Lâm: lấy dữ liệu mới nhất từ nhanh.vn đến hôm qua gồm doanh số theo kho, kênh và nguồn đơn; doanh thu theo nguồn đơn chạy quảng cáo; chi phí quảng cáo theo ngày và theo từng nền tảng (TikTok Ads, Facebook Ads, Shopee Ads). Sau đó dựng lại báo cáo và cập nhật trang web.';
     try { await navigator.clipboard.writeText(text); $('#cu-msg').textContent = 'Đã sao chép. Dán vào khung chat với Claude.'; }
     catch (e) { $('#cu-msg').textContent = 'Không sao chép được tự động. Hãy copy: ' + text; }
   };
