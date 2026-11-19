@@ -234,6 +234,11 @@ nav button.alert.on::after{background:#DC2626;box-shadow:0 0 0 2px #0F172A}
 body[data-theme=dark] header nav{background:#0F172A;border-color:#1E2A3D}
 body[data-theme=dark] .subnav{background:rgba(9,13,22,.94)}
 body[data-theme=dark] .subnav button{background:#121A28;color:#E2E8F0;border-color:#1E2A3D}
+/* màu khung: mỗi nhóm sản phẩm một màu */
+.sp-good{border-top:5px solid #16A34A}.sp-good h3{color:#15803D}
+.sp-bad{border-top:5px solid #DC2626}.sp-bad h3{color:#B91C1C}
+.sp-warn{border-top:5px solid #D97706}.sp-warn h3{color:#B45309}
+.sp-good .cmp-table th{background:#F0FDF4}.sp-bad .cmp-table th{background:#FEF2F2}.sp-warn .cmp-table th{background:#FFFBEB}
 .split2{display:grid;grid-template-columns:1fr;gap:16px}
 @media(min-width:960px){.split2{grid-template-columns:1fr 1fr}}
 #t-sp .tbl-wrap,#t-dt .tbl-wrap{max-height:520px}
@@ -294,6 +299,7 @@ button.btn{background:#DC2626;color:var(--card);border:0;padding:9px 14px;border
     <h2>Chia theo kho: KHO AN KHÁNH và cửa hàng LI-NING ĐÔNG ANH</h2>
     <div class="grid kho-grid" id="over-kho"></div>
     <div class="card" style="margin-top:12px"><h3>Doanh số theo ngày, chia theo kho</h3><div class="chart" style="height:280px"><canvas id="c-over-kho"></canvas></div></div>
+    <div id="over-growth" style="margin-top:12px"></div>
     <h2>Doanh số theo ngày và lũy kế</h2>
     <div class="card"><div class="chart"><canvas id="c-over"></canvas></div></div>
     <h2>Tỷ trọng theo nhóm kênh</h2>
@@ -324,10 +330,10 @@ button.btn{background:#DC2626;color:var(--card);border:0;padding:9px 14px;border
       <div class="seg" id="sp-tabs" style="margin-bottom:14px"></div>
       <div class="grid qc-kpis" id="sp-kpis"></div>
       <div class="split2">
-        <div class="card"><h3>Top 15 mẫu bán chạy trong tháng</h3><div class="tbl-wrap"><table class="cmp-table" id="sp-banchay"></table></div></div>
-        <div class="card"><h3>Tồn lâu chưa bán (không bán được 90 ngày)</h3><div class="tbl-wrap"><table class="cmp-table" id="sp-tonlau"></table></div></div>
+        <div class="card sp-good"><h3>Top 15 mẫu bán chạy trong tháng</h3><div class="tbl-wrap"><table class="cmp-table" id="sp-banchay"></table></div></div>
+        <div class="card sp-bad"><h3>Tồn lâu chưa bán (không bán được 90 ngày)</h3><div class="tbl-wrap"><table class="cmp-table" id="sp-tonlau"></table></div></div>
       </div>
-      <div class="card" style="margin-top:16px"><h3>Bán chậm (tồn đủ bán hơn 120 ngày)</h3><div class="tbl-wrap"><table class="cmp-table" id="sp-bancham"></table></div></div>
+      <div class="card sp-warn" style="margin-top:16px"><h3>Bán chậm (tồn đủ bán hơn 120 ngày)</h3><div class="tbl-wrap"><table class="cmp-table" id="sp-bancham"></table></div></div>
       <p class="note" id="sp-note"></p>
     </div>
   </section>
@@ -547,6 +553,29 @@ function renderOver(){
   ]}, options:{...OPT, scales:{y:{beginAtZero:true}, y1:{position:'right', beginAtZero:true, grid:{drawOnChartArea:false}}}}});
   $('#over-group').innerHTML = `<tr><th>Nhóm</th><th>Đơn TC</th><th>Doanh số thuần</th><th>Tỷ trọng</th></tr>` +
     R.byGroup.map(g => `<tr><td>${esc(g.group)}</td><td>${N(g.metrics.ordersSuccess)}</td><td>${SH(g.metrics.netRevenue)}</td><td>${P(g.share)}</td></tr>`).join('');
+}
+
+/* ---------- TĂNG TRƯỞNG THEO TUẦN (cùng nguồn nhanh.vn, không dùng số kế toán) ---------- */
+function renderGrowth(){
+  const ak = brById('KHO_AN_KHANH'), dn = brById('LINING_DONG_ANH');
+  const box = document.getElementById('over-growth');
+  if (!ak || !dn || !box) return;
+  const dk = d => R.meta.from.slice(0, 8) + String(d).padStart(2, '0');
+  const mapOf = arr => Object.fromEntries(arr.map(x => [x.date, x.netRevenue]));
+  const maps = {A: mapOf(ak.daily), D: mapOf(dn.daily), T: mapOf(R.daily)};
+  const weeks = [{l: 'Tuần 1 (01–07)', f: 1, t: 7}, {l: 'Tuần 2 (08–14)', f: 8, t: 14}, {l: `Tuần 3 (15–${asOfDay})`, f: 15, t: asOfDay}].filter(w => w.f <= asOfDay);
+  const agg = (w, m) => { let s = 0, n = 0; for (let d = w.f; d <= Math.min(w.t, asOfDay); d++) { const k = dk(d); if (k in m) { s += m[k]; n++; } } return {s, n, avg: n ? s / n : null}; };
+  const data = weeks.map(w => ({w, A: agg(w, maps.A), D: agg(w, maps.D), T: agg(w, maps.T)}));
+  const chip = g => g == null ? '<span class="chip fl">—</span>' : `<span class="chip ${g >= 0 ? 'up' : 'dn'}">${g >= 0 ? '▲' : '▼'} ${cmPct(g)}</span>`;
+  const rows = data.map((r, i) => {
+    const p = i > 0 ? data[i - 1] : null;
+    const g = (k) => p && p[k].avg && r[k].avg != null ? r[k].avg / p[k].avg - 1 : null;
+    return `<tr><td>${esc(r.w.l)}</td><td>${r.T.n}</td><td>${SH(r.A.s)}</td><td>${SH(r.D.s)}</td><td><b>${SH(r.T.s)}</b></td><td>${SH(r.T.avg)}</td>
+      <td>${p ? chip(g('T')) : '—'}</td><td>${p ? chip(g('A')) : '—'}</td><td>${p ? chip(g('D')) : '—'}</td></tr>`;
+  }).join('');
+  box.innerHTML = `<div class="card"><h3>Tăng trưởng theo tuần</h3>
+    <p class="note" style="margin:0 0 10px">Trung bình doanh số mỗi ngày của tuần so với tuần trước, theo nhanh.vn. Tuần cuối có thể chưa đủ 7 ngày.</p>
+    <div class="tbl-wrap"><table class="cmp-table" style="min-width:720px"><tr><th>Tuần</th><th>Số ngày</th><th>Kho AK</th><th>Đông Anh</th><th>Tổng</th><th>TB/ngày tổng</th><th>Tổng so tuần trước</th><th>AK so tuần trước</th><th>Đông Anh so tuần trước</th></tr>${rows}</table></div></div>`;
 }
 
 /* ---------- TỔNG QUAN: CHIA THEO KHO (AK và Đông Anh) ---------- */
@@ -1273,12 +1302,14 @@ function renderSanPhamIdx(){
   const share = v => K.tongTon.von ? ((v / K.tongTon.von) * 100).toFixed(0) + '% giá trị tồn' : '';
   const banChayRev = K.banChay.reduce((a, r) => a + r[3], 0), banChaySl = K.banChay.reduce((a, r) => a + r[2], 0);
   const kia = SP.kho[1 - spIdx] ? SP.kho[1 - spIdx].ten : 'kho kia';
+  const spColors = ['#1E3A8A', '#DC2626', '#D97706', '#16A34A'];
   $('#sp-kpis').innerHTML = [
     bigCard('Tồn kho ' + esc(K.ten) + ' (giá vốn)', SH(K.tongTon.von), `${spNum(K.tongTon.sl)} sản phẩm · ${spNum(K.tongTon.mau)} mẫu`, ''),
     bigCard('Tồn lâu chưa bán (> 90 ngày)', SH(K.tonLau.von), `${spNum(K.tonLau.sl)} sp · ${spNum(K.tonLau.mau)} mẫu · ${share(K.tonLau.von)}`, '<span class="chip dn">Cần xử lý</span>'),
     bigCard('Bán chậm (tồn > 120 ngày bán)', SH(K.banCham.von), `${spNum(K.banCham.sl)} sp · ${spNum(K.banCham.mau)} mẫu · ${share(K.banCham.von)}`, '<span class="chip fl">Theo dõi</span>'),
     bigCard('Top 15 bán chạy tháng', SH(banChayRev), `${spNum(banChaySl)} sp bán ${dShort(SP.kyThang[0])}–${dShort(SP.kyThang[1])}`, '')
   ].join('');
+  document.querySelectorAll('#sp-kpis .card').forEach((c, i) => { c.style.borderTop = '4px solid ' + spColors[i]; });
   const cover = n => n == null ? '—' : n <= 0 ? '<span class="chip dn">hết hàng</span>' : n < 14 ? `<span class="chip dn">${n} ngày</span>` : `${n} ngày`;
   $('#sp-banchay').innerHTML = `<tr><th>#</th><th>Mẫu</th><th>SL bán</th><th>Doanh thu</th><th>LN gộp</th><th>Tồn</th><th>Đủ bán</th></tr>` +
     K.banChay.map((r, j) => `<tr><td>${j + 1}</td><td style="white-space:normal;text-align:left">${esc(r[0])}<div style="font-size:11px;color:#94A3B8">${esc(r[1] || '')}</div></td><td>${spNum(r[2])}</td><td>${SH(r[3])}</td><td style="color:#64748B">${SH(r[4])}</td><td>${spNum(r[5])}</td><td>${cover(r[6])}</td></tr>`).join('');
@@ -1505,7 +1536,7 @@ function navInit(){
   window.addEventListener('hashchange', () => show(location.hash.slice(1)));
 }
 
-renderOver(); renderOverKho(); renderKho(); renderKenh(); renderNv(); renderDon(); renderQc(); renderNam(); renderKt();
+renderOver(); renderOverKho(); renderGrowth(); renderKho(); renderKenh(); renderNv(); renderDon(); renderQc(); renderNam(); renderKt();
 renderLs(); renderSoSanh(); renderSanPham(); renderDongTien(); renderCu(); setupFilter(); applyFilter(); setupTheme(); navInit();
 show(location.hash.slice(1));
 })();
