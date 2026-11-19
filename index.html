@@ -486,10 +486,10 @@ $('#xuat-notes').innerHTML = (dq.notes || []).map(n => `<li>${esc(n)}</li>`).joi
 const LS = [
   {m:'2026-07', label:'Tháng 7/2026', ak:5966850353, dA:618379523, src:'Báo cáo KQKD Hero T10, sheet Tổng hợp'},
   {m:'2026-08', label:'Tháng 8/2026', ak:5470007633, dA:558796368, src:'Báo cáo KQKD Hero T10, sheet Tổng hợp'},
-  {m:'2026-09', label:'Tháng 9/2026', ak:null, dA:null, src:'Chưa có báo cáo tháng 9 trong dữ liệu'},
+  {m:'2026-09', label:'Tháng 9/2026', ak:null, dA:null, tong:2916208713, src:'File "KE_HOACH_KD_T10_VA_PHAN_TICH_T9", sheet PHÂN TÍCH T9: 11 nguồn đối soát, chưa gồm bán lẻ cửa hàng Đông Anh và CTV Tuấn Anh'},
   {m:'2026-10', label:'Tháng 10/2026', ak:5467158392, dA:674601991, src:'Báo cáo KQKD Hero T10, sheet T10'}
 ];
-function renderLs(){
+function renderLsOld(){
   const ok = LS.filter(x => x.ak != null);
   $('#ls-cards').innerHTML = LS.map(x => x.ak == null
     ? kpi(x.label, '—', x.src)
@@ -506,7 +506,7 @@ function renderLs(){
 /* ---------- BỘ LỌC THỜI GIAN ---------- */
 const NOV = meta.from.slice(0,7);
 function setupFilter(){
-  const months = [{v: NOV, label: `Tháng 11/2026 (đến ${dmy(meta.asOf)})`}, ...LS.slice().reverse().map(x => ({v: x.m, label: x.label + (x.ak == null ? ' – chưa có' : ' (số tổng)')}))];
+  const months = [{v: NOV, label: `Tháng 11/2026 (đến ${dmy(meta.asOf)})`}, ...LS.slice().reverse().map(x => ({v: x.m, label: x.label + (x.ak != null ? ' (số tổng)' : x.tong != null ? ' (chỉ có tổng)' : ' – chưa có')}))];
   $('#fMonth').innerHTML = months.map(x => `<option value="${x.v}">${esc(x.label)}</option>`).join('');
   $('#fFrom').min = meta.from; $('#fFrom').max = meta.asOf;
   $('#fTo').min = meta.from; $('#fTo').max = meta.asOf;
@@ -525,7 +525,9 @@ function applyFilter(){
     $('#fFrom').disabled = $('#fTo').disabled = true;
     $('#over-kpi').innerHTML = h && h.ak != null
       ? [kpi('Kho An Khánh', SH(h.ak), 'doanh số thuần, chưa VAT'), kpi('Cửa hàng Đông Anh', SH(h.dA), 'doanh số thuần, chưa VAT'), kpi('Tổng hai kho', SH(h.ak + h.dA), 'theo báo cáo kế toán')].join('')
-      : `<div class="card" style="grid-column:1/-1">Chưa có số liệu ${h ? h.label : m}.</div>`;
+      : h && h.tong != null
+        ? kpi('Tổng 11 nguồn đối soát', SH(h.tong), 'chưa gồm bán lẻ cửa hàng Đông Anh và CTV Tuấn Anh')
+        : `<div class="card" style="grid-column:1/-1">Chưa có số liệu ${h ? h.label : m}.</div>`;
     $('#fInfo').textContent = h ? h.src + '. Chi tiết theo ngày và theo nhân viên chỉ có cho tháng 11.' : '';
     return;
   }
@@ -548,7 +550,7 @@ function applyFilter(){
 }
 
 /* ---------- SO SÁNH TĂNG TRƯỞNG ---------- */
-function renderSoSanh(){
+function renderSoSanhOld(){
   const akNov = kho?.metrics?.netRevenue ?? null, dANov = daBranch0()?.metrics?.netRevenue ?? null;
   const rows = LS.map(x => ({label: x.label, days: new Date(+x.m.slice(0,4), +x.m.slice(5,7), 0).getDate(), ak: x.ak, dA: x.dA, now: false}));
   rows.push({label: `Tháng 11 (1–${asOfDay}/11)`, days: asOfDay, ak: akNov, dA: dANov, now: true});
@@ -591,6 +593,72 @@ function renderSoSanh(){
   ]}, options:{...OPT, plugins:{legend:{display:false}}}});
 }
 function daBranch0(){ return R.byBranch.find(b => b.id === 'LINING_DONG_ANH'); }
+
+/* ---------- LỊCH SỬ & SO SÁNH (bản mới: có tháng 9) ---------- */
+const DSBC_T8 = 5580857375, DSBC_T9 = 2916208713; // cùng cách tính, file KE_HOACH_KD_T10_VA_PHAN_TICH_T9 (11 nguồn đối soát)
+function renderLs(){
+  const ok = LS.filter(x => x.ak != null);
+  $('#ls-cards').innerHTML = LS.map(x => x.ak != null
+    ? kpi(x.label, SH(x.ak + x.dA), `AK ${SH(x.ak)} · Đông Anh ${SH(x.dA)}`)
+    : x.tong != null ? kpi(x.label, SH(x.tong), 'chỉ có tổng, 11 nguồn đối soát')
+    : kpi(x.label, '—', x.src)).join('');
+  mk('c-ls', {type:'bar', data:{labels: ok.map(x => x.label), datasets:[
+    {label:'Kho An Khánh (tr)', data: ok.map(x => x.ak/1e6), backgroundColor:'#d7141a'},
+    {label:'Cửa hàng Đông Anh (tr)', data: ok.map(x => x.dA/1e6), backgroundColor:'#1d4ed8'}
+  ]}, options:{...OPT}});
+  $('#ls-table').innerHTML = `<tr><th>Tháng</th><th>Kho An Khánh</th><th>Đông Anh</th><th>Tổng</th><th>Nguồn</th></tr>` +
+    LS.map(x => x.ak != null ? `<tr><td>${x.label}</td><td>${SH(x.ak)}</td><td>${SH(x.dA)}</td><td><b>${SH(x.ak+x.dA)}</b></td><td>${esc(x.src)}</td></tr>`
+      : x.tong != null ? `<tr><td>${x.label}</td><td colspan="2">chỉ có tổng</td><td><b>${SH(x.tong)}</b></td><td>${esc(x.src)}</td></tr>`
+      : `<tr><td>${x.label}</td><td colspan="3">chưa có số liệu</td><td>${esc(x.src)}</td></tr>`).join('');
+}
+function renderSoSanh(){
+  const akNov = kho?.metrics?.netRevenue ?? null, dANov = daBranch0()?.metrics?.netRevenue ?? null;
+  const rows = LS.map(x => ({label: x.label, days: new Date(+x.m.slice(0,4), +x.m.slice(5,7), 0).getDate(), ak: x.ak, dA: x.dA, tong: x.tong ?? null, basis: x.tong != null ? 'dsbc' : 'kt'}));
+  rows.push({label: `Tháng 11 (1–${asOfDay}/11)`, days: asOfDay, ak: akNov, dA: dANov, tong: null, basis: 'nh', now: true});
+  const pctS = v => v == null || !isFinite(v) ? '—' : (v >= 0 ? '+' : '') + (v*100).toFixed(1).replace('.',',') + '%';
+  let prev = null;
+  const body = rows.map(r => {
+    const tot = r.ak != null ? r.ak + r.dA : r.tong;
+    const has = tot != null;
+    const avgT = has ? tot / r.days : null;
+    const avgA = r.ak != null ? r.ak / r.days : null, avgD = r.dA != null ? r.dA / r.days : null;
+    let cmp = null, why = '';
+    if (has && prev) {
+      const ok = prev.basis === r.basis || (prev.basis === 'kt' && r.basis === 'nh');
+      if (ok) cmp = {g: avgT/prev.avgT - 1, ga: avgA != null && prev.avgA ? avgA/prev.avgA - 1 : null, gd: avgD != null && prev.avgD ? avgD/prev.avgD - 1 : null, label: prev.label};
+      else why = `không so: khác cách tính với ${prev.label}`;
+    }
+    const cell = (v) => v == null ? '—' : pctS(v);
+    const row = `<tr><td>${esc(r.label)}</td><td>${r.days}</td><td>${r.ak != null ? SH(r.ak) : '—'}</td><td>${r.dA != null ? SH(r.dA) : '—'}</td><td>${has ? SH(tot) : 'chưa có'}</td><td>${has ? SH(avgT) : '—'}</td><td>${cmp ? `<b>${cell(cmp.g)}</b>` : '—'}</td><td>${cmp ? cell(cmp.ga) : '—'}</td><td>${cmp ? cell(cmp.gd) : '—'}</td><td>${cmp ? esc(cmp.label) : esc(why || (has ? 'tháng đầu' : ''))}</td></tr>`;
+    if (has) prev = {avgT, avgA, avgD, label: r.label, basis: r.basis};
+    return row;
+  });
+  $('#ss-table').innerHTML = `<tr><th>Tháng</th><th>Số ngày</th><th>Kho AK</th><th>Đông Anh</th><th>Tổng</th><th>TB/ngày</th><th>TB/ngày so kỳ trước</th><th>AK so kỳ trước</th><th>Đông Anh so kỳ trước</th><th>So với</th></tr>` + body.join('');
+  const last = rows[rows.length-1], octR = rows[3];
+  const lastAvg = (last.ak + last.dA) / last.days, octAvg = (octR.ak + octR.dA) / octR.days;
+  const t8 = DSBC_T8/31, t9 = DSBC_T9/30;
+  $('#ss-kpi').innerHTML = [
+    kpi('Tháng 11 so tháng 10 (TB/ngày)', pctS(lastAvg/octAvg - 1), `${SH(lastAvg)}/ngày so với ${SH(octAvg)}/ngày`),
+    kpi('Đông Anh tháng 11 so tháng 10 (TB/ngày)', pctS(((last.dA/last.days) / (octR.dA/octR.days)) - 1), `${SH(last.dA/last.days)}/ngày so với ${SH(octR.dA/octR.days)}/ngày`),
+    kpi('Kho An Khánh tháng 11 so tháng 10 (TB/ngày)', pctS(((last.ak/last.days) / (octR.ak/octR.days)) - 1), `${SH(last.ak/last.days)}/ngày so với ${SH(octR.ak/octR.days)}/ngày`),
+    kpi('Tháng 9 so tháng 8 (cùng cách tính)', pctS(t9/t8 - 1), `TB/ngày ${SH(t9)} so với ${SH(t8)} (11 nguồn đối soát)`)
+  ].join('');
+  $('#ss-note').innerHTML = 'Tháng 9 chỉ có tổng theo 11 nguồn đối soát, không gồm bán lẻ cửa hàng Đông Anh và CTV Tuấn Anh, nên không so trực tiếp với tháng 8 và tháng 10 (báo cáo kế toán). Tháng 7, 8, 10 lấy từ báo cáo kế toán; tháng 11 lấy từ nhanh.vn. So sánh tháng 11 với tháng 10 chỉ mang tính xu hướng. So sánh cùng kỳ 1–18/11 với 1–18/10 cần số theo ngày của tháng 10 từ nhanh.vn.';
+  mk('c-ss', {type:'bar', data:{labels: rows.map(r => r.label), datasets:[
+    {label:'TB/ngày (tr)', data: rows.map(r => { const tot = r.ak != null ? r.ak + r.dA : r.tong; return tot != null ? tot/r.days/1e6 : null; }), backgroundColor: rows.map(r => r.now ? '#1d4ed8' : r.basis === 'dsbc' ? '#9ca3af' : '#d7141a')}
+  ]}, options:{...OPT, plugins:{legend:{display:false}}}});
+  // hiệu quả QC & hàng hoàn tháng 11
+  const days = ads.daily || [];
+  const withRev = days.filter(d => d.adsRevenue != null);
+  const costAll = days.reduce((a,d) => a + (d.cost||0), 0);
+  const costRev = withRev.reduce((a,d) => a + (d.cost||0), 0), revQc = withRev.reduce((a,d) => a + d.adsRevenue, 0);
+  $('#ss-eff').innerHTML = [
+    kpi('ROI quảng cáo', costRev ? (revQc/costRev).toFixed(1).replace('.',',') + 'x' : '—', `mục tiêu ${ads.roasTarget}x · từ ${dmy(ads.dataFrom)}`),
+    kpi('Chi phí QC / doanh số thuần', P(costAll / t.netRevenue), `${SH(costAll)} / ${SH(t.netRevenue)}`),
+    kpi('Tỷ lệ hàng hoàn', P(t.returnRate), `${SH(t.returnsValue)} hàng hoàn`),
+    kpi('AOV (đơn trung bình)', SH(t.aov), `${N(t.ordersSuccess)} đơn thành công`)
+  ].join('');
+}
 
 /* ---------- CẬP NHẬT ---------- */
 function renderCu(){
