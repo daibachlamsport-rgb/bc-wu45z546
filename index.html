@@ -215,6 +215,9 @@ body[data-theme=dark] .swap{background:#121A28;color:#E2E8F0;border-color:#1E2A3
 body[data-theme=dark] .vs{color:#64748B}
 body[data-theme=dark] .cmp-bar label{color:#94A3B8}
 body[data-theme=dark] .chart{color:#94A3B8}
+.split2{display:grid;grid-template-columns:1fr;gap:16px}
+@media(min-width:960px){.split2{grid-template-columns:1fr 1fr}}
+#t-sp .tbl-wrap,#t-dt .tbl-wrap{max-height:520px}
 /* thẻ KPI quảng cáo */
 .qc-kpis{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}
 @media(max-width:860px){.qc-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -254,6 +257,8 @@ button.btn{background:#DC2626;color:var(--card);border:0;padding:9px 14px;border
   <button data-t="kt">Kiểm tra số liệu</button>
   <button data-t="xuat">Xuất &amp; ghi chú</button>
   <button data-t="ls">Lịch sử tháng</button>
+  <button data-t="sp">Sản phẩm</button>
+  <button data-t="dt">Dòng tiền &amp; Kho</button>
   <button data-t="sosanh">So sánh</button>
   <button data-t="capnhat">Cập nhật</button>
 </nav>
@@ -290,6 +295,31 @@ button.btn{background:#DC2626;color:var(--card);border:0;padding:9px 14px;border
     <div class="card wrap"><table id="nv-table"></table></div>
     <div class="card" style="margin-top:12px"><div class="chart" style="height:300px"><canvas id="c-nv"></canvas></div></div>
     <p class="note" id="nv-note"></p>
+  </section>
+
+  <section class="tab" id="t-sp">
+    <div class="cmp">
+      <div class="seg" id="sp-tabs" style="margin-bottom:14px"></div>
+      <div class="grid qc-kpis" id="sp-kpis"></div>
+      <div class="split2">
+        <div class="card"><h3>Top 15 mẫu bán chạy trong tháng</h3><div class="tbl-wrap"><table class="cmp-table" id="sp-banchay"></table></div></div>
+        <div class="card"><h3>Tồn lâu chưa bán (không bán được 90 ngày)</h3><div class="tbl-wrap"><table class="cmp-table" id="sp-tonlau"></table></div></div>
+      </div>
+      <div class="card" style="margin-top:16px"><h3>Bán chậm (tồn đủ bán hơn 120 ngày)</h3><div class="tbl-wrap"><table class="cmp-table" id="sp-bancham"></table></div></div>
+      <p class="note" id="sp-note"></p>
+    </div>
+  </section>
+
+  <section class="tab" id="t-dt">
+    <div class="cmp">
+      <div class="grid qc-kpis" id="dt-kpis"></div>
+      <div class="card"><h3>Nhập – xuất – tồn theo kho (giá vốn)</h3><div class="tbl-wrap"><table class="cmp-table" id="dt-xnk"></table></div></div>
+      <div class="split2" style="margin-top:16px">
+        <div class="card"><h3>Tiền nhập hàng NCC và TikTok trả về ví theo ngày</h3><div class="chart" style="height:280px"><canvas id="c-dt"></canvas></div></div>
+        <div class="card"><h3>Tiền còn nằm ngoài (chưa về tài khoản)</h3><div class="tbl-wrap"><table class="cmp-table" id="dt-ngoai"></table></div></div>
+      </div>
+      <p class="note" id="dt-note"></p>
+    </div>
   </section>
 
   <section class="tab" id="t-don">
@@ -1175,6 +1205,91 @@ function renderSoSanh(){
   cmSync();
 }
 
+/* ---------- SẢN PHẨM & DÒNG TIỀN (khôi phục từ báo cáo cũ) ---------- */
+const bigCard = (lbl, val, sub, chip) => `<div class="card qc-kpi"><div class="lbl">${lbl}</div>${chip ? `<div class="badge-r">${chip}</div>` : ''}<div class="big">${val}</div><div class="sub">${sub}</div></div>`;
+const dFull = s => s ? s.slice(8) + '/' + s.slice(5, 7) + '/' + s.slice(0, 4) : '—';
+const dShort = s => s ? s.slice(8) + '/' + s.slice(5, 7) : '';
+const spNum = n => Math.round(n || 0).toLocaleString('vi-VN');
+let spIdx = 0;
+function renderSanPham(){
+  const SP = R.sanPham;
+  if (!SP || !SP.kho || !SP.kho.length) { $('#sp-kpis').innerHTML = '<div class="card" style="grid-column:1/-1">Báo cáo này chưa có dữ liệu sản phẩm.</div>'; return; }
+  $('#sp-tabs').innerHTML = SP.kho.map((k, i) => `<button type="button" data-i="${i}">${esc(k.ten)}</button>`).join('');
+  document.querySelectorAll('#sp-tabs button').forEach(b => b.onclick = () => { spIdx = +b.dataset.i; renderSanPhamIdx(); });
+  renderSanPhamIdx();
+  $('#sp-note').textContent = `Nguồn nhanh.vn, tách riêng từng kho, đọc lúc ${SP.docLuc || ''}. Chỉ tính sản phẩm đang kinh doanh (đã loại hàng ngừng bán, voucher, túi giấy); size gộp thành 1 mẫu. Bán chạy ${dFull(SP.kyThang[0])}–${dFull(SP.kyThang[1])}, doanh thu chưa VAT. "Đủ bán" = tồn chia tốc độ bán của kho đó; dưới 14 ngày là cần bổ sung. Tồn lâu: còn tồn, nhập từ hơn 90 ngày trước và kho không bán được cái nào trong 90 ngày. Bán chậm: có bán nhưng tồn đủ bán hơn 120 ngày. Cột "bán ở kho kia" giúp xem có nên chuyển hàng sang kho kia không.`;
+}
+function renderSanPhamIdx(){
+  const SP = R.sanPham; if (!SP || !SP.kho) return;
+  const K = SP.kho[spIdx];
+  document.querySelectorAll('#sp-tabs button').forEach((b, j) => b.classList.toggle('on', j === spIdx));
+  const share = v => K.tongTon.von ? ((v / K.tongTon.von) * 100).toFixed(0) + '% giá trị tồn' : '';
+  const banChayRev = K.banChay.reduce((a, r) => a + r[3], 0), banChaySl = K.banChay.reduce((a, r) => a + r[2], 0);
+  const kia = SP.kho[1 - spIdx] ? SP.kho[1 - spIdx].ten : 'kho kia';
+  $('#sp-kpis').innerHTML = [
+    bigCard('Tồn kho ' + esc(K.ten) + ' (giá vốn)', SH(K.tongTon.von), `${spNum(K.tongTon.sl)} sản phẩm · ${spNum(K.tongTon.mau)} mẫu`, ''),
+    bigCard('Tồn lâu chưa bán (> 90 ngày)', SH(K.tonLau.von), `${spNum(K.tonLau.sl)} sp · ${spNum(K.tonLau.mau)} mẫu · ${share(K.tonLau.von)}`, '<span class="chip dn">Cần xử lý</span>'),
+    bigCard('Bán chậm (tồn > 120 ngày bán)', SH(K.banCham.von), `${spNum(K.banCham.sl)} sp · ${spNum(K.banCham.mau)} mẫu · ${share(K.banCham.von)}`, '<span class="chip fl">Theo dõi</span>'),
+    bigCard('Top 15 bán chạy tháng', SH(banChayRev), `${spNum(banChaySl)} sp bán ${dShort(SP.kyThang[0])}–${dShort(SP.kyThang[1])}`, '')
+  ].join('');
+  const cover = n => n == null ? '—' : n <= 0 ? '<span class="chip dn">hết hàng</span>' : n < 14 ? `<span class="chip dn">${n} ngày</span>` : `${n} ngày`;
+  $('#sp-banchay').innerHTML = `<tr><th>#</th><th>Mẫu</th><th>SL bán</th><th>Doanh thu</th><th>LN gộp</th><th>Tồn</th><th>Đủ bán</th></tr>` +
+    K.banChay.map((r, j) => `<tr><td>${j + 1}</td><td style="white-space:normal;text-align:left">${esc(r[0])}<div style="font-size:11px;color:#94A3B8">${esc(r[1] || '')}</div></td><td>${spNum(r[2])}</td><td>${SH(r[3])}</td><td style="color:#64748B">${SH(r[4])}</td><td>${spNum(r[5])}</td><td>${cover(r[6])}</td></tr>`).join('');
+  $('#sp-tonlau').innerHTML = `<tr><th>#</th><th>Mẫu</th><th>Tồn</th><th>Giá trị vốn</th><th>Giá bán</th><th>Nhập từ</th><th>Bán 90 ngày ở ${esc(kia)}</th></tr>` +
+    K.tonLau.top.map((r, j) => `<tr><td>${j + 1}</td><td style="white-space:normal;text-align:left">${esc(r[0])}</td><td>${spNum(r[1])}</td><td>${SH(r[2])}</td><td style="color:#64748B">${SH(r[3])}</td><td style="color:#64748B">${dFull(r[4])}</td><td>${r[5] > 0 ? `<span class="chip up">${spNum(r[5])}</span>` : '<span style="color:#94A3B8">0</span>'}</td></tr>`).join('');
+  $('#sp-bancham').innerHTML = `<tr><th>#</th><th>Mẫu</th><th>Tồn</th><th>Giá trị vốn</th><th>Bán 90 ngày</th><th>Bán 30 ngày</th><th>Đủ bán</th><th>Bán 90 ngày ở ${esc(kia)}</th></tr>` +
+    K.banCham.top.map((r, j) => `<tr><td>${j + 1}</td><td style="white-space:normal;text-align:left">${esc(r[0])}</td><td>${spNum(r[1])}</td><td>${SH(r[2])}</td><td>${spNum(r[3])}</td><td>${spNum(r[4])}</td><td><span class="chip fl">${spNum(r[5])} ngày</span></td><td>${r[6] > 0 ? `<span class="chip up">${spNum(r[6])}</span>` : '<span style="color:#94A3B8">0</span>'}</td></tr>`).join('');
+}
+function renderDongTien(){
+  const D = R.dongTien;
+  if (!D) { $('#dt-kpis').innerHTML = '<div class="card" style="grid-column:1/-1">Báo cáo này chưa có dữ liệu dòng tiền.</div>'; return; }
+  const X = D.xnk, T = D.tiktok, N = D.ngoai;
+  const dm = R.meta.asOf.slice(8) + '/' + R.meta.asOf.slice(5, 7);
+  const kho = X ? X.kho.slice().sort((a, b) => (/AN KH/i.test(a.ten) ? -1 : 1)) : [];
+  const sumK = f => kho.reduce((a, k) => a + (f(k) || 0), 0);
+  const GC = !!(X && X.nhapGhiChu && !X.nhapGhiChu.loi);
+  const nhapNcc = k => GC ? k.nhapGhiChu.nhap.tien : k.thang.nhap.ncc.tien;
+  const traNcc = k => GC ? k.nhapGhiChu.tra.tien : k.thang.xuat.traNcc.tien;
+  const KN = [['tiktok_shop', 'TikTok Shop'], ['shopee', 'Shopee'], ['thuong', 'Đơn thường (CTV, Zalo, web, sỉ...)']];
+  const ng = k => KN.reduce((a, [id]) => { const e = N && N[id] && N[id][k]; if (e) { a[0] += e[0]; a[1] += e[1]; } return a; }, [0, 0]);
+  const giao = ng('giao'), hoan = ng('hoan');
+  const ttVi = T ? T.daQT.tienDon + T.daQT.dieuChinh : null;
+  $('#dt-kpis').innerHTML = [
+    bigCard('Tiền nhập hàng từ NCC', SH(sumK(nhapNcc) - sumK(traNcc)), `01–${dm}${GC ? ' theo ngày ghi chú trên phiếu' : ''} · trả NCC ${SH(sumK(traNcc))}`, ''),
+    T ? bigCard('TikTok đã trả vào ví', SH(ttVi), `tiền đơn ${SH(T.daQT.tienDon)} − quảng cáo ${SH(-T.daQT.quangCao)}`, '') : '',
+    T ? bigCard('TikTok chưa quyết toán', SH(T.chuaQT.tien), `${spNum(T.chuaQT.soGiaoDich)} giao dịch · số TikTok ước tính`, '') : '',
+    N ? bigCard('Hàng đang giao + đang hoàn', SH(giao[1] + hoan[1]), `${spNum(giao[0])} đơn đang giao · ${spNum(hoan[0])} đơn đang hoàn, chưa về kho`, '') : ''
+  ].join('');
+  if (X) {
+    const row = (label, fn) => `<tr><td style="white-space:normal;text-align:left">${label}</td>${kho.map(k => `<td>${SH(fn(k))}</td>`).join('')}<td><b>${SH(sumK(fn))}</b></td></tr>`;
+    $('#dt-xnk').innerHTML = `<tr><th>Khoản (giá vốn, trừ khi ghi khác)</th>${kho.map(k => `<th>${esc(k.ten)}</th>`).join('')}<th>Tổng</th></tr>` +
+      row('Tồn đầu tháng (ước tính)', k => k.tonDauThang.von) +
+      row('<b>Nhập từ nhà cung cấp</b> (tiền trên phiếu)', nhapNcc) +
+      row('Trả lại nhà cung cấp', traNcc) +
+      row('Hàng khách trả / hoàn nhập lại kho', k => k.thang.nhap.hoanGiao.von + k.thang.nhap.khachTra.von) +
+      row('<b>Xuất bán</b>', k => k.thang.xuat.ban.von) +
+      row('Tồn hiện tại (lúc đọc)', k => k.tonHienTai.von);
+    const ngay = Array.from({length: +R.meta.asOf.slice(8)}, (_, i) => i + 1);
+    const nhapNgay = ngay.map(d => sumK(k => (k.ngay[d - 1] || [])[1]));
+    const ttMap = Object.fromEntries((T && T.theoNgay) || []);
+    const ttNgay = ngay.map(d => ttMap[R.meta.asOf.slice(0, 8) + String(d).padStart(2, '0')] || 0);
+    const sets = [{type: 'bar', label: 'Tiền nhập hàng NCC', data: nhapNgay, backgroundColor: '#1E3A8A', borderRadius: 6}];
+    if (T) sets.push({type: 'bar', label: 'TikTok trả về ví', data: ttNgay, backgroundColor: '#94A3B8', borderRadius: 6});
+    mk('c-dt', {type: 'bar', data: {labels: ngay.map(d => d + '/' + R.meta.asOf.slice(5, 7)), datasets: sets},
+      options: {...OPT, scales: {x: {grid: {display: false}, ticks: {color: '#64748B', font: {size: 11}, autoSkip: true, maxRotation: 0}}, y: {beginAtZero: true, grid: {color: '#E2E8F0', borderDash: [3, 4], drawTicks: false}, border: {display: false}, ticks: {color: '#64748B', callback: v => SH(v)}}},
+        plugins: {legend: {position: 'bottom'}, tooltip: {callbacks: {label: c => `${c.dataset.label}: ${SH(c.parsed.y)}`}}}}});
+  }
+  const rows = [];
+  if (N) for (const [id, ten] of KN) {
+    const x = N[id]; if (!x) continue;
+    rows.push(`<tr><td style="white-space:normal;text-align:left">${ten} · đang giao</td><td>${spNum(x.giao[0])} đơn</td><td>${SH(x.giao[1])}</td></tr>`);
+    if (x.hoan[0]) rows.push(`<tr><td style="white-space:normal;text-align:left">${ten} · <span style="color:#DC2626">đang hoàn, chưa về kho</span></td><td>${spNum(x.hoan[0])} đơn</td><td>${SH(x.hoan[1])}</td></tr>`);
+  }
+  if (T) rows.push(`<tr style="font-weight:700"><td style="white-space:normal;text-align:left">TikTok chưa quyết toán (TikTok chưa trả vào ví)</td><td>${spNum(T.chuaQT.soGiaoDich)} gd</td><td>${SH(T.chuaQT.tien)}</td></tr>`);
+  $('#dt-ngoai').innerHTML = `<tr><th>Khoản</th><th>Số đơn</th><th>Giá trị</th></tr>` + (rows.join('') || '<tr><td colspan="3">Không có số liệu</td></tr>');
+  $('#dt-note').textContent = `Nhập – xuất – tồn lấy từ nhanh.vn, từ 01 đến hết ${dm}. ${GC ? 'Tiền nhập tính theo ngày ghi chú trên phiếu.' : 'Chưa đọc được ghi chú phiếu, tạm tính theo ngày phiếu.'} Tồn theo giá vốn. Tiền TikTok đọc từ TikTok Seller Center (Tài chính): "đã trả vào ví" là tiền quyết toán đã trừ phí; chưa tính tiền rút về ngân hàng. "Chưa quyết toán" là số ước tính, có thể giảm nếu khách trả hàng. Đơn đang giao/hoàn tính theo giá trị chưa VAT.`;
+}
+
 /* ---------- AI COMMAND CENTER: sparkline, thanh lệch, khối AI, chế độ sáng/tối ---------- */
 const barGrad = (c1, c2) => ctx => {
   const {chart} = ctx, area = chart.chartArea;
@@ -1290,7 +1405,7 @@ function renderCu(){
 }
 
 /* ---------- ĐIỀU HƯỚNG ---------- */
-const IDS = ['over','kho','kenh','nv','don','qc','nam','kt','xuat','ls','sosanh','capnhat'];
+const IDS = ['over','kho','kenh','nv','don','qc','nam','kt','xuat','ls','sp','dt','sosanh','capnhat'];
 function show(id){
   if (!IDS.includes(id)) id = 'over';
   document.querySelectorAll('.tab').forEach(e => e.classList.toggle('on', e.id === 't-' + id));
@@ -1303,7 +1418,7 @@ document.querySelectorAll('nav button').forEach(b => b.onclick = () => show(b.da
 window.addEventListener('hashchange', () => show(location.hash.slice(1)));
 
 renderOver(); renderKho(); renderKenh(); renderNv(); renderDon(); renderQc(); renderNam(); renderKt();
-renderLs(); renderSoSanh(); renderCu(); setupFilter(); applyFilter(); setupTheme();
+renderLs(); renderSoSanh(); renderSanPham(); renderDongTien(); renderCu(); setupFilter(); applyFilter(); setupTheme();
 show(location.hash.slice(1));
 })();
 </script>
