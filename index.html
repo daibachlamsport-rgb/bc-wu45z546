@@ -85,7 +85,7 @@ ul.clean{margin:6px 0;padding-left:18px}ul.clean li{margin:4px 0}
 /* thanh điều khiển 1 hàng */
 .cmp-bar{display:flex;flex-wrap:nowrap;align-items:center;gap:12px 14px;overflow-x:auto;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;padding:10px 14px;box-shadow:0 1px 3px rgba(15,23,42,.06);margin-bottom:16px}
 .cmp-bar label{flex:0 0 auto;display:flex;flex-direction:row;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#475569;letter-spacing:0;text-transform:none}
-.cmp select{min-width:180px;border-radius:8px;border:1px solid #E2E8F0;padding:7px 10px;font-size:13px;font-weight:600;color:#0F172A;background:#fff}
+.cmp select{min-width:0;max-width:200px;border-radius:8px;border:1px solid #E2E8F0;padding:7px 10px;font-size:13px;font-weight:600;color:#0F172A;background:#fff}
 .cmp select:disabled{background:#F8FAFC;color:#94A3B8}
 .cmp .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
 .cmp .dot.a{background:#2563EB}
@@ -263,7 +263,7 @@ button.btn{background:var(--ink);color:var(--card);border:0;padding:9px 14px;bor
         <span class="sep"></span>
         <div class="seg" id="cmp-view">
           <button data-v="abs" class="on" type="button">Số tuyệt đối</button>
-          <button data-v="pct" type="button">Phần trăm (B = 100%)</button>
+          <button data-v="pct" type="button">Theo %</button>
         </div>
       </div>
       <div class="cmp-cards" id="cmp-cards"></div>
