@@ -47,6 +47,35 @@ tr.tot td{font-weight:700;border-top:2px solid var(--line)}
 .banner{border-radius:12px;padding:12px 14px;margin:0 0 12px;font-weight:600}
 .banner.ok{background:#dcfce7;color:#166534}.banner.bad{background:#fee2e2;color:#991b1b}
 ul.clean{margin:6px 0;padding-left:18px}ul.clean li{margin:4px 0}
+.cmp{--a:#2563EB;--b:#94A3B8;--ink:#0F172A;--mut:#64748B;--line:#E2E8F0;background:#F8FAFC;border-radius:16px;padding:12px;color:#0F172A}
+.cmp .card{background:#FFFFFF;border:1px solid #E2E8F0;border-radius:14px;padding:16px;color:#0F172A}
+.cmp h3{color:#0F172A}
+.cmp .note{color:#64748B}
+.cmp-bar{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:flex-end;margin-bottom:14px}
+.cmp-bar label{font-size:12px;color:#64748B;display:flex;flex-direction:column;gap:4px;font-weight:600}
+.cmp select{font:14px system-ui,sans-serif;padding:8px 10px;border:1px solid #E2E8F0;border-radius:10px;background:#fff;color:#0F172A;min-width:210px}
+.cmp select:disabled{background:#F1F5F9;color:#64748B}
+.seg{display:inline-flex;background:#F1F5F9;border-radius:10px;padding:3px;gap:2px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;padding:7px 12px;border-radius:8px;font:600 13px system-ui,sans-serif;color:#475569;cursor:pointer}
+.seg button.on{background:#fff;color:#0F172A;box-shadow:0 1px 2px rgba(15,23,42,.08)}
+.cmp-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:14px}
+.cmp-card .lbl{font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.cmp-card .vals{display:flex;justify-content:space-between;align-items:flex-end;gap:8px;margin-top:10px}
+.cmp-card .va{font-size:22px;font-weight:700;color:#2563EB;line-height:1.1}
+.cmp-card .vb{font-size:16px;font-weight:600;color:#94A3B8;line-height:1.1}
+.cmp-card .sub{font-size:11px;color:#64748B;margin-top:3px}
+.cmp-grid{display:grid;gap:14px;grid-template-columns:1fr;margin-bottom:14px}
+@media(min-width:900px){.cmp-grid{grid-template-columns:1fr 1fr}}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+.chip.up{background:#DCFCE7;color:#166534}.chip.dn{background:#FEE2E2;color:#991B1B}.chip.fl{background:#F1F5F9;color:#475569}
+.cmp-table{width:100%;border-collapse:collapse;font-size:14px;min-width:640px}
+.cmp-table th,.cmp-table td{padding:10px 8px;border-bottom:1px solid #E2E8F0;text-align:right;white-space:nowrap;color:#0F172A}
+.cmp-table th:first-child,.cmp-table td:first-child{text-align:left}
+.cmp-table th{font-size:12px;color:#64748B;font-weight:600;background:#F8FAFC}
+.mini{position:relative;display:inline-block;width:120px;height:8px;background:#F1F5F9;border-radius:4px;vertical-align:middle}
+.mini>i{display:block;height:100%;border-radius:4px}
+.mini>b{position:absolute;top:-3px;bottom:-3px;width:2px;background:#0F172A;border-radius:1px}
+.cmp-eff{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
 .filter{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin-bottom:12px}
 .filter label{font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
 .filter select,.filter input{font:14px system-ui,sans-serif;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
@@ -169,13 +198,33 @@ button.btn{background:var(--ink);color:var(--card);border:0;padding:9px 14px;bor
   </section>
 
   <section class="tab" id="t-sosanh">
-    <div class="grid" id="ss-kpi"></div>
-    <h2>Tăng trưởng theo tháng (trung bình mỗi ngày, chưa VAT)</h2>
-    <div class="card wrap"><table id="ss-table"></table></div>
-    <p class="note" id="ss-note"></p>
-    <h2>Hiệu quả tháng 11 (chưa có số tháng trước để so)</h2>
-    <div class="grid" id="ss-eff"></div>
-    <div class="card" style="margin-top:12px"><div class="chart" style="height:280px"><canvas id="c-ss"></canvas></div></div>
+    <div class="cmp">
+      <div class="cmp-bar card">
+        <div class="seg" id="cmp-mode">
+          <button data-m="months" class="on" type="button">Tháng với tháng</button>
+          <button data-m="kho" type="button">Kho với kho</button>
+          <button data-m="target" type="button">Thực tế với chỉ tiêu</button>
+        </div>
+        <label>Đối tượng A <select id="cmp-a"></select></label>
+        <label>Đối tượng B <select id="cmp-b"></select></label>
+        <div class="seg" id="cmp-view">
+          <button data-v="abs" class="on" type="button">Số tuyệt đối</button>
+          <button data-v="pct" type="button">Phần trăm (B = 100%)</button>
+        </div>
+      </div>
+      <div class="cmp-cards" id="cmp-cards"></div>
+      <div class="cmp-grid">
+        <div class="card"><h3 id="cmp-bar-title">So sánh từng chỉ số</h3><div class="chart" style="height:300px"><canvas id="c-cmp-bar"></canvas></div></div>
+        <div class="card" id="cmp-line-box"><h3 id="cmp-line-title">Lũy kế theo ngày</h3><div class="chart" style="height:300px"><canvas id="c-cmp-line"></canvas></div></div>
+      </div>
+      <div class="card">
+        <h3>Bảng chênh lệch chi tiết</h3>
+        <div class="wrap"><table class="cmp-table" id="cmp-table"></table></div>
+      </div>
+      <p class="note" id="cmp-note"></p>
+      <h2>Hiệu quả tháng 11</h2>
+      <div class="grid cmp-eff" id="ss-eff"></div>
+    </div>
   </section>
 
   <section class="tab" id="t-capnhat">
@@ -611,7 +660,7 @@ function renderLs(){
       : x.tong != null ? `<tr><td>${x.label}</td><td colspan="2">chỉ có tổng</td><td><b>${SH(x.tong)}</b></td><td>${esc(x.src)}</td></tr>`
       : `<tr><td>${x.label}</td><td colspan="3">chưa có số liệu</td><td>${esc(x.src)}</td></tr>`).join('');
 }
-function renderSoSanh(){
+function renderSoSanhLegacy(){
   const akNov = kho?.metrics?.netRevenue ?? null, dANov = daBranch0()?.metrics?.netRevenue ?? null;
   const rows = LS.map(x => ({label: x.label, days: new Date(+x.m.slice(0,4), +x.m.slice(5,7), 0).getDate(), ak: x.ak, dA: x.dA, tong: x.tong ?? null, basis: x.tong != null ? 'dsbc' : 'kt'}));
   rows.push({label: `Tháng 11 (1–${asOfDay}/11)`, days: asOfDay, ak: akNov, dA: dANov, tong: null, basis: 'nh', now: true});
@@ -658,6 +707,205 @@ function renderSoSanh(){
     kpi('Tỷ lệ hàng hoàn', P(t.returnRate), `${SH(t.returnsValue)} hàng hoàn`),
     kpi('AOV (đơn trung bình)', SH(t.aov), `${N(t.ordersSuccess)} đơn thành công`)
   ].join('');
+}
+
+/* ---------- SO SÁNH (thiết kế mới: 3 trục, thẻ đối chiếu, biểu đồ, bảng chênh lệch) ---------- */
+const CM = {mode: 'months', a: null, b: null, view: 'abs'};
+const brById = id => R.byBranch.find(b => b.id === id);
+function cmMonths(){
+  const list = LS.map(x => ({id: x.m, label: `Tháng ${+x.m.slice(5)}/2026`, days: new Date(+x.m.slice(0,4), +x.m.slice(5,7), 0).getDate(), ak: x.ak, dA: x.dA, tong: x.tong ?? null, nov: false}));
+  const kn = brById('KHO_AN_KHANH'), dn = brById('LINING_DONG_ANH');
+  list.push({id: NOV, label: `Tháng 11/2026 (1–${asOfDay}/11)`, days: asOfDay, ak: kn ? kn.metrics.netRevenue : null, dA: dn ? dn.metrics.netRevenue : null, tong: null, nov: true});
+  list.forEach(x => { x.total = x.ak != null ? x.ak + x.dA : x.tong; });
+  return list;
+}
+const cmMonth = id => cmMonths().find(x => x.id === id);
+function rowsMonths(A, B){
+  const g = (x, k) => x == null ? null : k === 'avg' ? (x.total != null ? x.total / x.days : null) : (x[k] ?? null);
+  return [
+    {label: 'Kho An Khánh', a: g(A,'ak'), b: g(B,'ak'), good: 'up', fmt: 'm'},
+    {label: 'Cửa hàng Đông Anh', a: g(A,'dA'), b: g(B,'dA'), good: 'up', fmt: 'm'},
+    {label: 'Tổng hai kho', a: g(A,'total'), b: g(B,'total'), good: 'up', fmt: 'm'},
+    {label: 'TB doanh số / ngày', a: g(A,'avg'), b: g(B,'avg'), good: 'up', fmt: 'm'}
+  ];
+}
+function rowsKho(A, B){
+  if (!A || !B) return [];
+  const m = x => x.metrics, d = asOfDay;
+  return [
+    {label: 'Doanh số thuần', a: m(A).netRevenue, b: m(B).netRevenue, good: 'up', fmt: 'm'},
+    {label: 'TB doanh số / ngày', a: m(A).netRevenue / d, b: m(B).netRevenue / d, good: 'up', fmt: 'm'},
+    {label: 'Đơn thành công', a: m(A).ordersSuccess, b: m(B).ordersSuccess, good: 'up', fmt: 'n'},
+    {label: 'Giá trị đơn trung bình (AOV)', a: m(A).aov, b: m(B).aov, good: 'up', fmt: 'm'},
+    {label: 'Đang luân chuyển', a: m(A).transitValue, b: m(B).transitValue, good: 'flat', fmt: 'm'},
+    {label: 'Hàng hoàn', a: m(A).returnsValue, b: m(B).returnsValue, good: 'down', fmt: 'm'},
+    {label: 'Tỷ lệ hoàn đơn', a: m(A).returnRate, b: m(B).returnRate, good: 'down', fmt: 'p'}
+  ];
+}
+function rowsTarget(A){
+  if (!A || !A.target) return [];
+  const tg = A.target.netRevenue, act = A.metrics.netRevenue, pace = tg * asOfDay / meta.daysInPeriod;
+  return [
+    {label: 'Doanh số thuần thực tế', a: act, b: tg, good: 'up', fmt: 'm'},
+    {label: `Nhịp chuẩn đến ngày ${asOfDay}`, a: act, b: pace, good: 'up', fmt: 'm'},
+    {label: 'Còn thiếu so với chỉ tiêu', a: Math.max(0, tg - act), b: null, good: 'flat', fmt: 'm'},
+    {label: 'Tiến độ chỉ tiêu', a: act / tg, b: 1, good: 'up', fmt: 'p'}
+  ];
+}
+function cmRows(){
+  if (CM.mode === 'months') return rowsMonths(cmMonth(CM.a), cmMonth(CM.b));
+  if (CM.mode === 'kho') return rowsKho(brById(CM.a), brById(CM.b));
+  return rowsTarget(brById(CM.a));
+}
+function cmNameA(){ return CM.mode === 'months' ? (cmMonth(CM.a)?.label || '') : (brById(CM.a)?.name || ''); }
+function cmNameB(){ return CM.mode === 'target' ? 'Chỉ tiêu' : CM.mode === 'months' ? (cmMonth(CM.b)?.label || '') : (brById(CM.b)?.name || ''); }
+function cmOpts(){
+  if (CM.mode === 'months') return cmMonths().filter(x => x.total != null).map(x => ({v: x.id, t: x.label + (x.ak == null ? ' (chỉ tổng)' : '')}));
+  return [{v: 'KHO_AN_KHANH', t: 'KHO AN KHÁNH'}, {v: 'LINING_DONG_ANH', t: 'LI-NING ĐÔNG ANH'}];
+}
+const fv = (v, f) => v == null || isNaN(v) ? '—' : f === 'p' ? P(v) : f === 'n' ? N(v) : SH(v);
+function cmChip(r){
+  if (r.trend === 'na') return '<span class="chip fl">—</span>';
+  const arrow = r.trend === 'up' ? '▲' : r.trend === 'dn' ? '▼' : '■';
+  const txt = r.pct == null ? '' : ((r.pct >= 0 ? '+' : '') + (r.pct*100).toFixed(1).replace('.',',') + '%');
+  return `<span class="chip ${r.trend}">${arrow} ${txt}</span>`;
+}
+function renderCmp(){
+  const pv = CM.view === 'pct';
+  const disp = cmRows().map(r => {
+    const ok = r.a != null && r.b != null && r.b !== 0;
+    const conv = pv && r.fmt !== 'p' && ok;
+    const va = conv ? r.a / r.b : r.a, vb = conv ? 1 : r.b, f = conv ? 'p' : r.fmt;
+    const diff = ok ? r.a - r.b : null, pct = ok ? diff / r.b : null;
+    const trend = pct == null ? 'na' : r.good === 'flat' ? 'fl' : Math.abs(pct) < 0.02 ? 'fl' : ((pct > 0) === (r.good !== 'down') ? 'up' : 'dn');
+    const dispDiff = conv ? va - 1 : diff;
+    return {...r, va, vb, f, diff, dispDiff, pct, trend, ok, converted: conv};
+  });
+  const A = cmNameA(), B = cmNameB();
+  // thẻ đối chiếu
+  $('#cmp-cards').innerHTML = disp.slice(0, 4).map(r => `<div class="card cmp-card">
+      <div class="lbl">${esc(r.label)}</div>
+      <div class="vals">
+        <div><div class="va">${fv(r.va, r.f)}</div><div class="sub">${esc(A)}</div></div>
+        <div style="text-align:right"><div class="vb">${fv(r.vb, r.f)}</div><div class="sub">${esc(B)}</div></div>
+      </div>
+      <div style="margin-top:10px">${cmChip(r)}</div>
+    </div>`).join('');
+  // bảng chênh lệch
+  $('#cmp-table').innerHTML = `<tr><th>Chỉ số</th><th>${esc(A)}</th><th>${esc(B)}</th><th>Chênh lệch</th><th>%</th><th>Đánh giá</th><th>Tiến độ</th></tr>` +
+    disp.map(r => {
+      const max = Math.max(r.a || 0, r.b || 0) || 1;
+      const wa = r.a == null ? 0 : Math.min(100, Math.max(0, (r.a / max) * 100));
+      const wb = r.b == null ? null : Math.min(100, Math.max(0, (r.b / max) * 100));
+      const dtxt = r.dispDiff == null ? '—'
+        : r.f === 'p' ? `${r.dispDiff >= 0 ? '+' : '−'}${Math.abs(r.dispDiff*100).toFixed(1).replace('.',',')} đ.p`
+        : `${r.dispDiff >= 0 ? '+' : '−'}${fv(Math.abs(r.dispDiff), r.f)}`;
+      const ptxt = r.pct == null ? '—' : (r.pct >= 0 ? '+' : '') + (r.pct*100).toFixed(1).replace('.',',') + '%';
+      return `<tr>
+        <td>${esc(r.label)}</td>
+        <td><b style="color:#2563EB">${fv(r.va, r.f)}</b></td>
+        <td style="color:#64748B">${fv(r.vb, r.f)}</td>
+        <td>${dtxt}</td>
+        <td>${ptxt}</td>
+        <td>${cmChip(r)}</td>
+        <td><span class="mini"><i style="width:${wa}%;background:#2563EB"></i>${wb != null ? `<b style="left:${wb}%"></b>` : ''}</span></td>
+      </tr>`;
+    }).join('');
+  // biểu đồ cột nhóm
+  const bars = disp.filter(r => r.ok && r.fmt !== 'n' && (pv || r.fmt !== 'p'));
+  $('#cmp-bar-title').textContent = pv ? `Tỷ lệ so với ${B} (= 100%)` : 'So sánh từng chỉ số (VND)';
+  mk('c-cmp-bar', {type:'bar', data:{labels: bars.map(r => r.label), datasets:[
+    {label: A, data: bars.map(r => r.va), backgroundColor:'#2563EB', borderRadius:6},
+    {label: B, data: bars.map(r => r.vb), backgroundColor:'#94A3B8', borderRadius:6}
+  ]}, options:{...OPT, indexAxis:'y', scales:{x:{ticks:{callback: v => pv ? (v*100).toFixed(0) + '%' : SH(v)}}},
+    plugins:{legend:{position:'bottom'}, tooltip:{callbacks:{label: c => `${c.dataset.label}: ${pv ? P(c.parsed.x) : SH(c.parsed.x)}`}}}}});
+  // biểu đồ đường: lũy kế theo ngày
+  const cumul = arr => { let c = 0; return arr.map(d => (c += d.netRevenue)); };
+  let labels = [], series = null, title = '';
+  if (CM.mode === 'kho') {
+    const X = brById(CM.a), Y = brById(CM.b);
+    if (X && Y) {
+      labels = X.daily.map(d => dmy(d.date));
+      series = [{label: A, data: cumul(X.daily), borderColor:'#2563EB'}, {label: B, data: cumul(Y.daily), borderColor:'#94A3B8'}];
+      title = 'Lũy kế doanh số theo ngày (VND)';
+    }
+  } else if (CM.mode === 'target') {
+    const X = brById(CM.a);
+    if (X && X.target) {
+      const n = meta.daysInPeriod;
+      labels = Array.from({length: n}, (_, i) => `${i+1}`);
+      const act = cumul(X.daily);
+      series = [{label: 'Thực tế lũy kế', data: labels.map((_, i) => act[i] ?? null), borderColor:'#2563EB'},
+                {label: 'Nhịp chỉ tiêu', data: labels.map((_, i) => X.target.netRevenue * (i+1) / n), borderColor:'#94A3B8', borderDash:[6,4]}];
+      title = 'Thực tế lũy kế so với nhịp chỉ tiêu (VND)';
+    }
+  } else {
+    const X = cmMonth(CM.a), Y = cmMonth(CM.b);
+    if (X && Y && (X.nov || Y.nov)) {
+      const nov = X.nov ? X : Y, other = X.nov ? Y : X;
+      const dN = cumul(R.daily);
+      const n = Math.max(other.days, meta.daysInPeriod);
+      labels = Array.from({length: n}, (_, i) => `${i+1}`);
+      const pace = other.total != null ? other.total / other.days : null;
+      series = [{label: nov.label, data: labels.map((_, i) => dN[i] ?? null), borderColor:'#2563EB'},
+                {label: `Nhịp ${other.label}`, data: labels.map((_, i) => pace == null ? null : pace * (i+1)), borderColor:'#94A3B8', borderDash:[6,4]}];
+      title = `Lũy kế ${nov.label} so với nhịp ${other.label} (VND)`;
+    }
+  }
+  const lineBox = document.getElementById('cmp-line-box');
+  if (series) {
+    lineBox.style.display = '';
+    $('#cmp-line-title').textContent = title;
+    mk('c-cmp-line', {type:'line', data:{labels, datasets: series.map(s => ({...s, tension: .25, pointRadius: 2, borderWidth: 2, fill: false}))},
+      options:{...OPT, scales:{y:{ticks:{callback: v => SH(v)}}}, plugins:{legend:{position:'bottom'}, tooltip:{callbacks:{label: c => `${c.dataset.label}: ${SH(c.parsed.y)}`}}}}});
+  } else {
+    lineBox.style.display = 'none';
+  }
+  // ghi chú nguồn
+  const notes = {
+    months: 'Tháng 7, 8, 10 là số kế toán; tháng 9 chỉ có tổng 11 nguồn đối soát (chưa gồm bán lẻ Đông Anh và CTV Tuấn Anh); tháng 11 là nhanh.vn đến ' + dmy(meta.asOf) + '. So giữa hai nguồn chỉ xem xu hướng.',
+    kho: 'Hai kho cùng kỳ 01–' + dmy(meta.asOf) + '/11 (nhanh.vn). Đông Anh chỉ bán lẻ tại cửa hàng; An Khánh bán đa kênh.',
+    target: 'Chỉ tiêu chưa VAT. Nhịp chuẩn = chỉ tiêu × số ngày đã qua ÷ ' + meta.daysInPeriod + '.'
+  };
+  $('#cmp-note').textContent = notes[CM.mode];
+  // hiệu quả tháng 11 (quảng cáo & hàng hoàn)
+  const days = ads.daily || [];
+  const withRev = days.filter(d => d.adsRevenue != null);
+  const costAll = days.reduce((a, d) => a + (d.cost || 0), 0);
+  const costRev = withRev.reduce((a, d) => a + (d.cost || 0), 0), revQc = withRev.reduce((a, d) => a + d.adsRevenue, 0);
+  $('#ss-eff').innerHTML = [
+    kpi('ROI quảng cáo', costRev ? (revQc / costRev).toFixed(1).replace('.',',') + 'x' : '—', `mục tiêu ${ads.roasTarget}x · từ ${dmy(ads.dataFrom)}`),
+    kpi('Chi phí QC / doanh số thuần', P(costAll / t.netRevenue), `${SH(costAll)} / ${SH(t.netRevenue)}`),
+    kpi('Tỷ lệ hàng hoàn', P(t.returnRate), `${SH(t.returnsValue)} hàng hoàn`),
+    kpi('AOV (đơn trung bình)', SH(t.aov), `${N(t.ordersSuccess)} đơn thành công`)
+  ].join('');
+}
+function cmSync(){
+  document.querySelectorAll('#cmp-mode button').forEach(b => b.classList.toggle('on', b.dataset.m === CM.mode));
+  document.querySelectorAll('#cmp-view button').forEach(b => b.classList.toggle('on', b.dataset.v === CM.view));
+  const opts = cmOpts();
+  $('#cmp-a').innerHTML = opts.map(o => `<option value="${o.v}"${o.v === CM.a ? ' selected' : ''}>${esc(o.t)}</option>`).join('');
+  if (CM.mode === 'target') {
+    $('#cmp-b').innerHTML = '<option>Chỉ tiêu cố định</option>';
+    $('#cmp-b').disabled = true;
+  } else {
+    $('#cmp-b').disabled = false;
+    $('#cmp-b').innerHTML = opts.map(o => `<option value="${o.v}"${o.v === CM.b ? ' selected' : ''}>${esc(o.t)}</option>`).join('');
+  }
+  renderCmp();
+}
+function renderSoSanh(){
+  if (!CM.a) { CM.a = NOV; CM.b = '2026-10'; }
+  document.querySelectorAll('#cmp-mode button').forEach(b => b.onclick = () => {
+    CM.mode = b.dataset.m;
+    if (CM.mode === 'months') { CM.a = NOV; CM.b = '2026-10'; }
+    else { CM.a = 'KHO_AN_KHANH'; CM.b = 'LINING_DONG_ANH'; }
+    cmSync();
+  });
+  document.querySelectorAll('#cmp-view button').forEach(b => b.onclick = () => { CM.view = b.dataset.v; cmSync(); });
+  $('#cmp-a').onchange = e => { CM.a = e.target.value; cmSync(); };
+  $('#cmp-b').onchange = e => { CM.b = e.target.value; cmSync(); };
+  cmSync();
 }
 
 /* ---------- CẬP NHẬT ---------- */
