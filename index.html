@@ -291,6 +291,9 @@ button.btn{background:#DC2626;color:var(--card);border:0;padding:9px 14px;border
   </div>
   <section class="tab" id="t-over">
     <div class="grid" id="over-kpi"></div>
+    <h2>Chia theo kho: KHO AN KHÁNH và cửa hàng LI-NING ĐÔNG ANH</h2>
+    <div class="grid kho-grid" id="over-kho"></div>
+    <div class="card" style="margin-top:12px"><h3>Doanh số theo ngày, chia theo kho</h3><div class="chart" style="height:280px"><canvas id="c-over-kho"></canvas></div></div>
     <h2>Doanh số theo ngày và lũy kế</h2>
     <div class="card"><div class="chart"><canvas id="c-over"></canvas></div></div>
     <h2>Tỷ trọng theo nhóm kênh</h2>
@@ -544,6 +547,30 @@ function renderOver(){
   ]}, options:{...OPT, scales:{y:{beginAtZero:true}, y1:{position:'right', beginAtZero:true, grid:{drawOnChartArea:false}}}}});
   $('#over-group').innerHTML = `<tr><th>Nhóm</th><th>Đơn TC</th><th>Doanh số thuần</th><th>Tỷ trọng</th></tr>` +
     R.byGroup.map(g => `<tr><td>${esc(g.group)}</td><td>${N(g.metrics.ordersSuccess)}</td><td>${SH(g.metrics.netRevenue)}</td><td>${P(g.share)}</td></tr>`).join('');
+}
+
+/* ---------- TỔNG QUAN: CHIA THEO KHO (AK và Đông Anh) ---------- */
+function renderOverKho(){
+  const ak = brById('KHO_AN_KHANH'), dn = brById('LINING_DONG_ANH');
+  if (!ak || !dn) return;
+  const card = (b, color, note) => {
+    const m = b.metrics, tg = b.target;
+    return `<div class="card kho-card" style="border-top:4px solid ${color}">
+      <div class="k">${esc(b.name)}</div>
+      <div class="v">${SH(m.netRevenue)}</div>
+      <div class="s">${N(m.ordersSuccess)} đơn thành công · AOV ${SH(m.aov)} · ${P(b.share)} tổng doanh số</div>
+      ${tg ? `<div class="s" style="margin-top:10px">Chỉ tiêu ${SH(tg.netRevenue)} chưa VAT · đạt <b>${P(tg.completionRate)}</b></div>${bar(tg.completionRate)}` : ''}
+      <div class="s" style="margin-top:10px">Đang luân chuyển ${SH(m.transitValue)} · hàng hoàn ${SH(m.returnsValue)} (${P(m.returnRate)})</div>
+      <div class="s" style="margin-top:6px;font-style:italic">${note}</div>
+    </div>`;
+  };
+  $('#over-kho').innerHTML = card(ak, '#DC2626', 'Bán đa kênh: TikTok, Shopee, CTV, Zalo, sỉ, web') + card(dn, '#1E3A8A', 'Cửa hàng bán lẻ offline, chỉ bán tại quầy');
+  const ds = ak.daily.map(d => d.date);
+  const dnMap = Object.fromEntries(dn.daily.map(d => [d.date, d.netRevenue]));
+  mk('c-over-kho', {type:'bar', data:{labels: ds.map(dmy), datasets:[
+    {label: 'KHO AN KHÁNH', data: ak.daily.map(d => d.netRevenue/1e6), backgroundColor:'#DC2626', borderRadius:4, stack:'s'},
+    {label: 'Đông Anh', data: ds.map(d => (dnMap[d] || 0)/1e6), backgroundColor:'#1E3A8A', borderRadius:4, stack:'s'}
+  ]}, options:{...OPT, scales:{x:{stacked:true, grid:{display:false}}, y:{stacked:true, beginAtZero:true, grid:{color:'#E2E8F0', borderDash:[3,4]}, ticks:{callback: v => v + ' tr'}}}}});
 }
 
 /* ---------- KHO ---------- */
@@ -1478,7 +1505,7 @@ function navInit(){
   window.addEventListener('hashchange', () => show(location.hash.slice(1)));
 }
 
-renderOver(); renderKho(); renderKenh(); renderNv(); renderDon(); renderQc(); renderNam(); renderKt();
+renderOver(); renderOverKho(); renderKho(); renderKenh(); renderNv(); renderDon(); renderQc(); renderNam(); renderKt();
 renderLs(); renderSoSanh(); renderSanPham(); renderDongTien(); renderCu(); setupFilter(); applyFilter(); setupTheme(); navInit();
 show(location.hash.slice(1));
 })();
