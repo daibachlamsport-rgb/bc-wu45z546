@@ -656,6 +656,16 @@ window.__BRAND__ = {
       }
     ]
   }
+};
+window.__HUY__ = {
+  "_ghiChu": "Đơn ở trạng thái hủy trên nhanh.vn (mã trạng thái 58, 61, 63, 64, 68), tạo từ 01/11 đến 18/11/2026. Giá trị = tổng giá trị đơn / 1,08 (chưa VAT). Đọc từ danh sách đơn TikTok Shop, Shopee và đơn thường (Facebook, Zalo, CTV, web, đổi hàng). Đông Anh chỉ bán lẻ tại quầy nên không có đơn hủy trên các kênh này; đơn hủy thuộc KHO AN KHÁNH.",
+  "ky": {"tu": "2026-11-01", "den": "2026-11-18"},
+  "tong": {"soDon": 1090, "giaTri": 2120014896},
+  "theo": {
+    "tiktok_shop": {"soDon": 1052, "giaTri": 2038950916},
+    "shopee": {"soDon": 26, "giaTri": 59379670},
+    "khac": {"soDon": 12, "giaTri": 21684310}
+  }
 };</script>
 <script>
 (function(){
@@ -736,14 +746,17 @@ function renderOver(){
 function renderOvStatus(S){
   const m = S.m, base = m.netRevenue || 1;
   const row = (lbl, orders, value, share, note) => `<tr><td style="white-space:normal;text-align:left">${lbl}</td><td>${orders}</td><td>${value}</td><td>${share}</td><td>—</td><td style="white-space:normal;text-align:left;color:#64748B">${note}</td></tr>`;
+  // đơn hủy: trạng thái hủy trên nhanh.vn; Đông Anh chỉ bán lẻ tại quầy nên không có đơn hủy trên kênh
+  const HU = window.__HUY__ || {tong: {soDon: 0, giaTri: 0}, theo: {}};
+  const hu = OV === 'dn' ? {soDon: 0, giaTri: 0} : HU.tong;
   $('#ov-status').innerHTML = `<tr><th>Trạng thái</th><th>Số đơn</th><th>Doanh số</th><th>Tỷ trọng so với thành công</th><th>Số sản phẩm</th><th>So với cùng kỳ tháng trước</th></tr>` +
-    row('Đơn tạo ra (tất cả kênh)', N(m.ordersTotal), '—', '—', 'Chưa có số tiền của đơn tạo ra') +
-    row('Hủy trước khi xử lý', N(m.ordersCanceled), '—', '—', 'Chưa có số tiền đơn hủy') +
+    row('Đơn tạo ra (tất cả kênh)', N(m.ordersTotal + hu.soDon), '—', '—', 'Gồm thành công, đang luân chuyển, hoàn và hủy') +
+    row('Hủy trước khi xử lý', N(hu.soDon), SH(hu.giaTri), P(hu.giaTri / base), 'Đơn ở trạng thái hủy, 01–18/11, chưa VAT') +
     row('<b>Thành công</b>', N(m.ordersSuccess), SH(m.netRevenue), '100%', 'Doanh số thuần chưa VAT') +
     row('Đang luân chuyển (đang giao)', N(m.ordersShipping), SH(m.transitValue), P(m.transitValue / base), 'Gồm cả đơn đang hoàn, không tách được tiền') +
     row('Giao thất bại, chờ hoàn về kho', N(m.ordersReturning), '—', '—', 'Gộp trong dòng đang luân chuyển') +
     row('<b>Hoàn</b> (đã hoàn về)', N(m.ordersReturned), SH(m.returnsValue), P(m.returnsValue / base), `Tỷ lệ hoàn ${P(m.returnRate)}`) +
-    `<tr style="font-weight:700"><td style="text-align:left">Tổng số đơn</td><td>${N(m.ordersTotal)}</td><td colspan="4" style="text-align:left;color:#64748B">Số sản phẩm và so sánh cùng kỳ tháng trước chưa có dữ liệu</td></tr>`;
+    `<tr style="font-weight:700"><td style="text-align:left">Tổng số đơn</td><td>${N(m.ordersTotal + hu.soDon)}</td><td colspan="4" style="text-align:left;color:#64748B">Số sản phẩm và so sánh cùng kỳ tháng trước chưa có dữ liệu</td></tr>`;
 }
 function renderOvYear(){
   const ms = NAM.months || [];
@@ -778,7 +791,7 @@ function renderOvReview(S){
   lines.push(m.returnRate > 0.05 ? `<b>Hàng hoàn:</b> tỷ lệ ${P(m.returnRate)} trên đơn không hủy, cao hơn ngưỡng 5%. Cần kiểm tra lý do hoàn.` : `<b>Hàng hoàn:</b> tỷ lệ ${P(m.returnRate)}, trong ngưỡng 5%.`);
   lines.push(`<b>Đang luân chuyển:</b> ${SH(m.transitValue)} (${P(m.transitValue / (m.netRevenue || 1))} doanh số thuần), chưa tính vào doanh số.`);
   if (OV === 'all') { const ak = brById('KHO_AN_KHANH'), dn = brById('LINING_DONG_ANH'); lines.push(`<b>Cơ cấu kho:</b> KHO AN KHÁNH ${P(ak.share)}, Đông Anh ${P(dn.share)} doanh số thuần.`); }
-  lines.push('<b>Dữ liệu còn thiếu:</b> số tiền đơn hủy, số sản phẩm, so sánh cùng kỳ tháng trước (cần số tháng 10 theo ngày từ nhanh.vn).');
+  lines.push('<b>Dữ liệu còn thiếu:</b> số sản phẩm và so sánh cùng kỳ tháng trước (cần số tháng 10 theo ngày từ nhanh.vn).');
   lines.push('<b>Lưu ý tách kho:</b> từ 24/02/2026 mới tách kho. Trước đó Đông Anh chỉ tính bán lẻ offline, còn các kênh khác thuộc KHO AN KHÁNH. Số kho tháng 1–2 đã tách lại theo báo cáo bán lẻ của nhanh.vn.');
   $('#ov-review').innerHTML = `<ul class="ai-list">${lines.filter(Boolean).map(x => `<li>${x}</li>`).join('')}</ul>`;
 }
