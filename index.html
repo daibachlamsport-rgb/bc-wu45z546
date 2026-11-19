@@ -238,6 +238,7 @@ body[data-theme=dark] .subnav button{background:#121A28;color:#E2E8F0;border-col
 .sp-good{border-top:5px solid #16A34A}.sp-good h3{color:#15803D}
 .sp-bad{border-top:5px solid #DC2626}.sp-bad h3{color:#B91C1C}
 .sp-warn{border-top:5px solid #D97706}.sp-warn h3{color:#B45309}
+.sp-tbl th:nth-child(2),.sp-tbl td:nth-child(2){text-align:left;white-space:normal;min-width:180px}
 .sp-good .cmp-table th{background:#F0FDF4}.sp-bad .cmp-table th{background:#FEF2F2}.sp-warn .cmp-table th{background:#FFFBEB}
 .split2{display:grid;grid-template-columns:1fr;gap:16px}
 @media(min-width:960px){.split2{grid-template-columns:1fr 1fr}}
@@ -330,10 +331,10 @@ button.btn{background:#DC2626;color:var(--card);border:0;padding:9px 14px;border
       <div class="seg" id="sp-tabs" style="margin-bottom:14px"></div>
       <div class="grid qc-kpis" id="sp-kpis"></div>
       <div class="split2">
-        <div class="card sp-good"><h3>Top 15 mẫu bán chạy trong tháng</h3><div class="tbl-wrap"><table class="cmp-table" id="sp-banchay"></table></div></div>
-        <div class="card sp-bad"><h3>Tồn lâu chưa bán (không bán được 90 ngày)</h3><div class="tbl-wrap"><table class="cmp-table" id="sp-tonlau"></table></div></div>
+        <div class="card sp-good"><h3>Top 15 mẫu bán chạy trong tháng</h3><div class="tbl-wrap"><table class="cmp-table sp-tbl" id="sp-banchay"></table></div></div>
+        <div class="card sp-bad"><h3>Tồn lâu chưa bán (không bán được 90 ngày)</h3><div class="tbl-wrap"><table class="cmp-table sp-tbl" id="sp-tonlau"></table></div></div>
       </div>
-      <div class="card sp-warn" style="margin-top:16px"><h3>Bán chậm (tồn đủ bán hơn 120 ngày)</h3><div class="tbl-wrap"><table class="cmp-table" id="sp-bancham"></table></div></div>
+      <div class="card sp-warn" style="margin-top:16px"><h3>Bán chậm (tồn đủ bán hơn 120 ngày)</h3><div class="tbl-wrap"><table class="cmp-table sp-tbl" id="sp-bancham"></table></div></div>
       <p class="note" id="sp-note"></p>
     </div>
   </section>
