@@ -296,15 +296,29 @@ button.btn{background:#DC2626;color:var(--card);border:0;padding:9px 14px;border
     <span class="note" id="fInfo"></span>
   </div>
   <section class="tab" id="t-over">
+    <div class="seg ov-seg" id="ov-seg">
+      <button type="button" data-k="all" class="on">Tất cả kho</button>
+      <button type="button" data-k="ak">KHO AN KHÁNH</button>
+      <button type="button" data-k="dn">KHO ĐÔNG ANH</button>
+    </div>
+    <h2>1. Doanh số theo KPI năm 2026</h2>
+    <div class="grid" id="ov-kpi2026"></div>
+    <div class="card" style="margin-top:12px"><h3>Doanh số từng tháng so với chỉ tiêu (chưa VAT)</h3><div class="chart" style="height:300px"><canvas id="c-ov-year"></canvas></div></div>
+    <div class="card" style="margin-top:12px"><h3>Doanh số theo quý</h3><div class="tbl-wrap"><table class="cmp-table" id="ov-quarter"></table></div></div>
+    <h2>2. Doanh số theo trạng thái đơn (kho đang chọn)</h2>
     <div class="grid" id="over-kpi"></div>
-    <h2>Chia theo kho: KHO AN KHÁNH và cửa hàng LI-NING ĐÔNG ANH</h2>
+    <div class="card" style="margin-top:12px"><div class="tbl-wrap"><table class="cmp-table" id="ov-status"></table></div></div>
+    <div class="card" style="margin-top:12px"><h3>Doanh số theo ngày và lũy kế (kho đang chọn)</h3><div class="chart" style="height:280px"><canvas id="c-over"></canvas></div></div>
+    <div id="over-growth" style="margin-top:12px"></div>
+    <h2>Chia theo kho</h2>
     <div class="grid kho-grid" id="over-kho"></div>
     <div class="card" style="margin-top:12px"><h3>Doanh số theo ngày, chia theo kho</h3><div class="chart" style="height:280px"><canvas id="c-over-kho"></canvas></div></div>
-    <div id="over-growth" style="margin-top:12px"></div>
-    <h2>Doanh số theo ngày và lũy kế</h2>
-    <div class="card"><div class="chart"><canvas id="c-over"></canvas></div></div>
-    <h2>Tỷ trọng theo nhóm kênh</h2>
+    <h2>3. Tỷ trọng theo nhóm kênh</h2>
     <div class="card wrap"><table id="over-group"></table></div>
+    <h2>4. Thương hiệu và danh mục nội bộ</h2>
+    <div class="card" id="ov-brand"></div>
+    <h2>5. Đánh giá tháng</h2>
+    <div class="card" id="ov-review"></div>
   </section>
 
   <section class="tab" id="t-kho">
@@ -538,7 +552,7 @@ const readAt = new Date(meta.generatedAt).toLocaleString('vi-VN', {timeZone:'Asi
 $('#meta').innerHTML = `Dữ liệu đến hết ${dmy(meta.asOf)} · đọc lúc ${esc(readAt)}<br>Doanh số: nhanh.vn, đơn thành công, chưa VAT · Quảng cáo: TikTok Ads (chi phí, doanh thu GMV Max) · Tháng 7, 8, 10: báo cáo kế toán (xem Lịch sử tháng)`;
 
 /* ---------- TỔNG QUAN ---------- */
-function renderOver(){
+function renderOverOld(){
   const transit = t.ordersShipping + t.ordersReturning;
   $('#over-kpi').innerHTML = [
     kpi('Doanh số thuần', SH(t.netRevenue), `${N(t.ordersSuccess)} đơn thành công · AOV ${SH(t.aov)}`),
@@ -553,6 +567,97 @@ function renderOver(){
     {type:'line', label:'Lũy kế (tr)', data: cumArr, borderColor:'#1d4ed8', backgroundColor:'#1d4ed8', yAxisID:'y1', tension:.25, pointRadius:3}
   ]}, options:{...OPT, scales:{y:{beginAtZero:true}, y1:{position:'right', beginAtZero:true, grid:{drawOnChartArea:false}}}}});
   $('#over-group').innerHTML = `<tr><th>Nhóm</th><th>Đơn TC</th><th>Doanh số thuần</th><th>Tỷ trọng</th></tr>` +
+    R.byGroup.map(g => `<tr><td>${esc(g.group)}</td><td>${N(g.metrics.ordersSuccess)}</td><td>${SH(g.metrics.netRevenue)}</td><td>${P(g.share)}</td></tr>`).join('');
+}
+
+/* ---------- TỔNG QUAN (bản mới): lọc theo kho, KPI năm, quý, trạng thái đơn, đánh giá ---------- */
+let OV = 'all';
+const NAM = R.nam || {months: [], yearTarget: 0};
+const ovTarget = (id) => (brById(id) && brById(id).target) ? brById(id).target.netRevenue : 0;
+function ovSel(){
+  if (OV === 'all') return {name: 'Tất cả kho', m: t, daily: R.daily, target: ovTarget('KHO_AN_KHANH') + ovTarget('LINING_DONG_ANH')};
+  const b = brById(OV === 'ak' ? 'KHO_AN_KHANH' : 'LINING_DONG_ANH');
+  return {name: b.name, m: b.metrics, daily: b.daily, target: ovTarget(b.id)};
+}
+function renderOver(){
+  const S = ovSel(), m = S.m;
+  const pctT = S.target ? m.netRevenue / S.target : null;
+  const nhipNow = asOfDay / meta.daysInPeriod;
+  $('#over-kpi').innerHTML = [
+    kpi('Doanh số thuần, đơn thành công', SH(m.netRevenue), `${N(m.ordersSuccess)} đơn · AOV ${SH(m.aov)} · ${S.name}`),
+    kpi('Đang luân chuyển', SH(m.transitValue), `${N(m.ordersShipping + m.ordersReturning)} đơn đang giao/hoàn, chưa tính doanh số`),
+    kpi('Hàng hoàn', SH(m.returnsValue), `${N(m.ordersReturned)} đơn · tỷ lệ ${P(m.returnRate)} trên đơn không hủy`),
+    kpi('Tiến độ chỉ tiêu tháng 11', pctT == null ? '—' : P(pctT), S.target ? `${SH(m.netRevenue)} / ${SH(S.target)} chưa VAT · nhịp chuẩn ${P(nhipNow)}` : 'chưa có chỉ tiêu')
+  ].join('');
+  // biểu đồ theo ngày + lũy kế của kho đang chọn
+  const days = S.daily;
+  let cum = 0;
+  mk('c-over', {type: 'bar', data: {labels: days.map(d => dmy(d.date)), datasets: [
+    {label: 'Doanh số ngày (tr)', data: days.map(d => d.netRevenue / 1e6), backgroundColor: '#1E3A8A', borderRadius: 6},
+    {type: 'line', label: 'Lũy kế (tr)', data: days.map(d => (cum += d.netRevenue) / 1e6), borderColor: '#DC2626', backgroundColor: '#DC2626', yAxisID: 'y1', tension: .3, pointRadius: 2}
+  ]}, options: {...OPT, scales: {y: {beginAtZero: true}, y1: {position: 'right', beginAtZero: true, grid: {drawOnChartArea: false}}}}});
+  renderOvStatus(S);
+  renderOvReview(S);
+}
+function renderOvStatus(S){
+  const m = S.m, base = m.netRevenue || 1;
+  const row = (lbl, orders, value, share, note) => `<tr><td style="white-space:normal;text-align:left">${lbl}</td><td>${orders}</td><td>${value}</td><td>${share}</td><td>—</td><td style="white-space:normal;text-align:left;color:#64748B">${note}</td></tr>`;
+  $('#ov-status').innerHTML = `<tr><th>Trạng thái</th><th>Số đơn</th><th>Doanh số</th><th>Tỷ trọng so với thành công</th><th>Số sản phẩm</th><th>So với cùng kỳ tháng trước</th></tr>` +
+    row('Đơn tạo ra (tất cả kênh)', N(m.ordersTotal), '—', '—', 'Chưa có số tiền của đơn tạo ra') +
+    row('Hủy trước khi xử lý', N(m.ordersCanceled), '—', '—', 'Chưa có số tiền đơn hủy') +
+    row('<b>Thành công</b>', N(m.ordersSuccess), SH(m.netRevenue), '100%', 'Doanh số thuần chưa VAT') +
+    row('Đang luân chuyển (đang giao)', N(m.ordersShipping), SH(m.transitValue), P(m.transitValue / base), 'Gồm cả đơn đang hoàn, không tách được tiền') +
+    row('Giao thất bại, chờ hoàn về kho', N(m.ordersReturning), '—', '—', 'Gộp trong dòng đang luân chuyển') +
+    row('<b>Hoàn</b> (đã hoàn về)', N(m.ordersReturned), SH(m.returnsValue), P(m.returnsValue / base), `Tỷ lệ hoàn ${P(m.returnRate)}`) +
+    `<tr style="font-weight:700"><td style="text-align:left">Tổng số đơn</td><td>${N(m.ordersTotal)}</td><td colspan="4" style="text-align:left;color:#64748B">Số sản phẩm và so sánh cùng kỳ tháng trước chưa có dữ liệu</td></tr>`;
+}
+function renderOvYear(){
+  const ms = NAM.months || [];
+  const labels = ms.map(x => 'T' + x.m);
+  mk('c-ov-year', {type: 'bar', data: {labels, datasets: [
+    {label: 'Thực tế (nhanh.vn)', data: ms.map(x => x.actual ?? null), backgroundColor: '#1E3A8A', borderRadius: 6},
+    {type: 'line', label: 'Chỉ tiêu (chưa VAT)', data: ms.map(x => x.target), borderColor: '#DC2626', borderDash: [6, 5], pointRadius: 0, borderWidth: 2}
+  ]}, options: {...OPT, scales: {y: {beginAtZero: true, ticks: {callback: v => SH(v)}}}}});
+  const sumA = (arr) => arr.reduce((a, x) => a + (x.actual || 0), 0);
+  const sumT = (arr) => arr.reduce((a, x) => a + (x.target || 0), 0);
+  const q = [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]].map((mm, i) => {
+    const arr = ms.filter(x => mm.includes(x.m));
+    return {n: i + 1, t: sumT(arr), a: sumA(arr), months: arr.filter(x => x.actual != null).length, total: mm.length};
+  });
+  const ytd = sumA(ms), tgtYtd = sumT(ms.filter(x => x.actual != null));
+  $('#ov-kpi2026').innerHTML = [
+    kpi('Chỉ tiêu cả năm 2026', SH(NAM.yearTarget), 'chưa VAT, theo kế hoạch kinh doanh'),
+    kpi('Thực tế đến tháng hiện tại', SH(ytd), `${P(ytd / NAM.yearTarget)} chỉ tiêu cả năm · ${ms.filter(x => x.actual != null).length} tháng có số`),
+    kpi('Đạt chỉ tiêu các tháng đã có số', P(ytd / tgtYtd), `thực tế ${SH(ytd)} / chỉ tiêu ${SH(tgtYtd)}`),
+    kpi('Tháng 11 (đến ' + dmy(meta.asOf) + ')', ms[10] ? P(ms[10].actual / ms[10].target) : '—', ms[10] ? `${SH(ms[10].actual)} / ${SH(ms[10].target)} · nhịp chuẩn ${P(asOfDay / meta.daysInPeriod)}` : '')
+  ].join('');
+  $('#ov-quarter').innerHTML = `<tr><th>Quý</th><th>Chỉ tiêu (chưa VAT)</th><th>Thực tế</th><th>% đạt</th><th>Ghi chú</th></tr>` +
+    q.map(x => `<tr><td>Quý ${x.n}</td><td>${SH(x.t)}</td><td>${x.months ? SH(x.a) : '—'}</td><td>${x.months ? P(x.a / x.t) : '—'}</td><td style="white-space:normal;text-align:left;color:#64748B">${x.months}/${x.total} tháng có số${x.n === 4 ? ' · quý 4 chưa hết, đến ' + dmy(meta.asOf) : ''}</td></tr>`).join('');
+}
+function renderOvReview(S){
+  const m = S.m, lines = [];
+  const pt = S.target ? m.netRevenue / S.target : null;
+  lines.push(pt == null ? '' : `<b>Tiến độ:</b> ${S.name} đạt ${P(pt)} chỉ tiêu tháng 11, nhịp chuẩn là ${P(asOfDay / meta.daysInPeriod)}. ${pt >= asOfDay / meta.daysInPeriod ? 'Đang đúng nhịp.' : 'Đang chậm nhịp, cần tăng doanh số những ngày còn lại.'}`);
+  const d = S.daily, last = d.slice(-7), prev = d.slice(-14, -7);
+  const avg = a => a.length ? a.reduce((x, y) => x + y.netRevenue, 0) / a.length : null;
+  if (prev.length) { const g = avg(last) / avg(prev) - 1; lines.push(`<b>Xu hướng 7 ngày gần nhất:</b> trung bình ${SH(avg(last))}/ngày, ${g >= 0 ? 'tăng' : 'giảm'} ${P(Math.abs(g))} so với 7 ngày trước (${SH(avg(prev))}/ngày).`); }
+  lines.push(m.returnRate > 0.05 ? `<b>Hàng hoàn:</b> tỷ lệ ${P(m.returnRate)} trên đơn không hủy, cao hơn ngưỡng 5%. Cần kiểm tra lý do hoàn.` : `<b>Hàng hoàn:</b> tỷ lệ ${P(m.returnRate)}, trong ngưỡng 5%.`);
+  lines.push(`<b>Đang luân chuyển:</b> ${SH(m.transitValue)} (${P(m.transitValue / (m.netRevenue || 1))} doanh số thuần), chưa tính vào doanh số.`);
+  if (OV === 'all') { const ak = brById('KHO_AN_KHANH'), dn = brById('LINING_DONG_ANH'); lines.push(`<b>Cơ cấu kho:</b> KHO AN KHÁNH ${P(ak.share)}, Đông Anh ${P(dn.share)} doanh số thuần.`); }
+  lines.push('<b>Dữ liệu còn thiếu:</b> số tiền đơn hủy, số sản phẩm, so sánh cùng kỳ tháng trước (cần số tháng 10 theo ngày từ nhanh.vn), và phân tích theo thương hiệu, danh mục.');
+  lines.push('<b>Cảnh báo dữ liệu năm:</b> tách kho các tháng đầu năm (T1–T2) cần kiểm tra lại, nên biểu đồ năm chỉ dùng số tổng.');
+  $('#ov-review').innerHTML = `<ul class="ai-list">${lines.filter(Boolean).map(x => `<li>${x}</li>`).join('')}</ul>`;
+}
+function ovInit(){
+  document.querySelectorAll('#ov-seg button').forEach(b => b.onclick = () => {
+    OV = b.dataset.k;
+    document.querySelectorAll('#ov-seg button').forEach(x => x.classList.toggle('on', x === b));
+    renderOver();
+  });
+  $('#ov-brand').innerHTML = `<p style="margin:0 0 8px"><b>Chưa có số liệu theo thương hiệu và danh mục nội bộ.</b></p>
+    <p class="note" style="margin:0">Báo cáo hiện có doanh số theo kênh, theo kho và top 15 mẫu. Để tính tỷ trọng từng thương hiệu và từng danh mục nội bộ, cần kéo doanh số từng dòng sản phẩm kèm thương hiệu và danh mục từ nhanh.vn. Anh xác nhận thì em sẽ làm.</p>`;
+  renderOvYear();
+  $('#over-group').innerHTML = `<tr><th>Nhóm</th><th>Đơn thành công</th><th>Doanh số thuần</th><th>Tỷ trọng</th></tr>` +
     R.byGroup.map(g => `<tr><td>${esc(g.group)}</td><td>${N(g.metrics.ordersSuccess)}</td><td>${SH(g.metrics.netRevenue)}</td><td>${P(g.share)}</td></tr>`).join('');
 }
 
@@ -1374,7 +1479,7 @@ function navInit(){
   window.addEventListener('hashchange', () => show(location.hash.slice(1)));
 }
 
-renderOver(); renderOverKho(); renderGrowth(); renderKho(); renderKenh(); renderNv(); renderDon(); renderQc(); renderNam(); renderKt();
+ovInit(); renderOver(); renderOverKho(); renderGrowth(); renderKho(); renderKenh(); renderNv(); renderDon(); renderQc(); renderNam(); renderKt();
 renderLs(); renderSoSanh(); renderSanPham(); renderDongTien(); renderCu(); setupFilter(); applyFilter(); setupTheme(); navInit();
 show(location.hash.slice(1));
 })();
