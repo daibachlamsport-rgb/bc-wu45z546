@@ -303,7 +303,7 @@ button.btn{background:#DC2626;color:var(--card);border:0;padding:9px 14px;border
     </div>
     <h2>1. Doanh số theo KPI năm 2026</h2>
     <div class="grid" id="ov-kpi2026"></div>
-    <div class="card" style="margin-top:12px"><h3>Doanh số từng tháng so với chỉ tiêu (chưa VAT)</h3><div class="chart" style="height:300px"><canvas id="c-ov-year"></canvas></div></div>
+    <div class="card" style="margin-top:12px"><h3>Doanh số từng tháng so với chỉ tiêu (chưa VAT)</h3><div class="chart" style="height:300px"><canvas id="c-ov-year"></canvas></div><p class="note">Tách kho An Khánh và Đông Anh bắt đầu từ 24/02/2026. Trước ngày đó doanh số ghi nhận hết vào Đông Anh, nên số theo kho của tháng 1 và tháng 2 không so sánh được; chỉ xem số tổng.</p></div>
     <div class="card" style="margin-top:12px"><h3>Doanh số theo quý</h3><div class="tbl-wrap"><table class="cmp-table" id="ov-quarter"></table></div></div>
     <h2>2. Doanh số theo trạng thái đơn (kho đang chọn)</h2>
     <div class="grid" id="over-kpi"></div>
@@ -645,7 +645,7 @@ function renderOvReview(S){
   lines.push(`<b>Đang luân chuyển:</b> ${SH(m.transitValue)} (${P(m.transitValue / (m.netRevenue || 1))} doanh số thuần), chưa tính vào doanh số.`);
   if (OV === 'all') { const ak = brById('KHO_AN_KHANH'), dn = brById('LINING_DONG_ANH'); lines.push(`<b>Cơ cấu kho:</b> KHO AN KHÁNH ${P(ak.share)}, Đông Anh ${P(dn.share)} doanh số thuần.`); }
   lines.push('<b>Dữ liệu còn thiếu:</b> số tiền đơn hủy, số sản phẩm, so sánh cùng kỳ tháng trước (cần số tháng 10 theo ngày từ nhanh.vn), và phân tích theo thương hiệu, danh mục.');
-  lines.push('<b>Cảnh báo dữ liệu năm:</b> tách kho các tháng đầu năm (T1–T2) cần kiểm tra lại, nên biểu đồ năm chỉ dùng số tổng.');
+  lines.push('<b>Lưu ý tách kho:</b> từ 24/02/2026 mới tách kho An Khánh và Đông Anh. Trước đó doanh số ghi hết vào Đông Anh, nên số theo kho tháng 1–2 không so được.');
   $('#ov-review').innerHTML = `<ul class="ai-list">${lines.filter(Boolean).map(x => `<li>${x}</li>`).join('')}</ul>`;
 }
 function ovInit(){
