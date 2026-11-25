@@ -328,10 +328,12 @@ button.btn{background:#DC2626;color:var(--card);border:0;padding:9px 14px;border
   </section>
 
   <section class="tab" id="t-kenh">
+    <h2>Tiến độ chỉ tiêu theo kênh (KHO AN KHÁNH)</h2>
+    <div class="card" id="kenh-tiendo"></div>
     <h2>Doanh số theo kênh (đơn thành công, chưa VAT)</h2>
     <div class="card wrap"><table id="kenh-table"></table></div>
     <div class="card" style="margin-top:12px"><div class="chart" style="height:340px"><canvas id="c-kenh"></canvas></div></div>
-    <p class="note">Bán lẻ (cửa hàng) gồm cửa hàng Li-Ning Đông Anh và phần bán lẻ của KHO AN KHÁNH. Chỉ tiêu theo kênh lấy từ business.ts.</p>
+    <p class="note">Bán lẻ (cửa hàng) gồm cửa hàng Li-Ning Đông Anh và phần bán lẻ của KHO AN KHÁNH; chỉ tiêu bán lẻ 30 tr có VAT là của KHO AN KHÁNH nên chỉ so với phần bán lẻ của kho này. Chỉ tiêu kênh anh giao đầu tháng (số có VAT, quy về chưa VAT ÷ 1,08). CTV Tuấn Anh không có chỉ tiêu.</p>
   </section>
 
   <section class="tab" id="t-nv">
@@ -931,9 +933,23 @@ function renderKho(){
 /* ---------- KÊNH ---------- */
 function renderKenh(){
   const rows = [...R.byChannel].sort((a,b) => b.metrics.netRevenue - a.metrics.netRevenue);
-  $('#kenh-table').innerHTML = `<tr><th>Kênh</th><th>Nhóm</th><th>Đơn TC</th><th>Tổng đơn</th><th>Doanh số thuần</th><th>Tỷ trọng</th><th>Hoàn</th><th>AOV</th></tr>` +
-    rows.map(c => { const m = c.metrics; return `<tr><td>${esc(c.name)}</td><td>${esc(c.group)}</td><td>${N(m.ordersSuccess)}</td><td>${N(m.ordersTotal)}</td><td>${SH(m.netRevenue)}</td><td>${P(c.share)}</td><td>${P(m.returnRate)}</td><td>${SH(m.aov)}</td></tr>`; }).join('') +
-    `<tr class="tot"><td>Tổng</td><td></td><td>${N(t.ordersSuccess)}</td><td>${N(t.ordersTotal)}</td><td>${SH(t.netRevenue)}</td><td>100%</td><td>${P(t.returnRate)}</td><td>${SH(t.aov)}</td></tr>`;
+  // 25/11/2026 (anh yêu cầu): tiến độ chỉ tiêu từng kênh giao đầu tháng - so với nhịp chuẩn, cần bao nhiêu/ngày cho những ngày còn lại
+  const rem = meta.daysInPeriod - asOfDay;
+  const mau = p => p >= nhip ? '#16A34A' : p >= nhip * 0.9 ? '#D97706' : '#DC2626';
+  const coTg = rows.filter(c => c.target).sort((a, b) => b.target.netRevenue - a.target.netRevenue);
+  // dòng tổng = đúng số thẻ KHO AN KHÁNH (gồm cả đơn "Khác", không gồm CTV Tuấn Anh) để mọi chỗ cùng một con số
+  const tgTong = kho && kho.target ? kho.target.netRevenue : coTg.reduce((a, c) => a + c.target.netRevenue, 0);
+  const acTong = kho && kho.target ? kho.target.actual : coTg.reduce((a, c) => a + c.target.actual, 0);
+  const dong = (ten, tg, ac) => { const p = ac / tg, can = rem > 0 ? Math.max(0, tg - ac) / rem : 0; return `<div style="margin:0 0 12px">
+      <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:13px"><b>${esc(ten)}</b><span><b style="color:${mau(p)}">${P(p)}</b> · ${SH(ac)} / ${SH(tg)}</span></div>
+      <div class="bar" style="position:relative"><i style="width:${Math.max(0, Math.min(100, p * 100))}%;background:${mau(p)}"></i><span title="nhịp chuẩn" style="position:absolute;top:-3px;bottom:-3px;left:${nhip * 100}%;width:2px;background:#0F172A"></span></div>
+      <div class="s" style="font-size:12px;color:#64748B">${p >= 1 ? 'Đã đạt chỉ tiêu' : `Còn thiếu ${SH(tg - ac)}${rem > 0 ? ` · cần ${SH(can)}/ngày trong ${rem} ngày còn lại` : ''}`} · ${p >= nhip ? 'đúng nhịp' : `chậm nhịp ${SH(tg * nhip - ac)}`}</div></div>`; };
+  $('#kenh-tiendo').innerHTML = `<p class="note" style="margin:0 0 12px">Vạch đen là nhịp chuẩn ${P(nhip)} (ngày ${asOfDay}/${meta.daysInPeriod}). Xanh: đúng nhịp · cam: chậm dưới 10% · đỏ: chậm hơn 10%.</p>` +
+    coTg.map(c => dong(c.name, c.target.netRevenue, c.target.actual)).join('') +
+    `<div style="border-top:1px solid #E2E8F0;padding-top:10px">${dong('Tổng KHO AN KHÁNH', tgTong, acTong)}<p class="note" style="margin:0">Tổng gồm cả đơn "Khác" (đơn đổi hàng, chưa gán nguồn)${taNote(kho && kho.target)}.</p></div>`;
+  $('#kenh-table').innerHTML = `<tr><th>Kênh</th><th>Nhóm</th><th>Đơn TC</th><th>Tổng đơn</th><th>Doanh số thuần</th><th>Chỉ tiêu</th><th>Đạt</th><th>Tỷ trọng</th><th>Hoàn</th><th>AOV</th></tr>` +
+    rows.map(c => { const m = c.metrics, tg = c.target; return `<tr><td>${esc(c.name)}</td><td>${esc(c.group)}</td><td>${N(m.ordersSuccess)}</td><td>${N(m.ordersTotal)}</td><td>${SH(m.netRevenue)}</td><td>${tg ? SH(tg.netRevenue) : '—'}</td><td>${tg ? `<b style="color:${mau(tg.completionRate)}">${P(tg.completionRate)}</b>` : '—'}</td><td>${P(c.share)}</td><td>${P(m.returnRate)}</td><td>${SH(m.aov)}</td></tr>`; }).join('') +
+    `<tr class="tot"><td>Tổng</td><td></td><td>${N(t.ordersSuccess)}</td><td>${N(t.ordersTotal)}</td><td>${SH(t.netRevenue)}</td><td>${SH(tgTong)}</td><td>${P(acTong / tgTong)}</td><td>100%</td><td>${P(t.returnRate)}</td><td>${SH(t.aov)}</td></tr>`;
   mk('c-kenh', {type:'bar', data:{labels: rows.map(c => c.name), datasets:[{label:'Doanh số thuần (tr)', data: rows.map(c => c.metrics.netRevenue/1e6), backgroundColor:'#d7141a'}]}, options:{...OPT, indexAxis:'y', plugins:{legend:{display:false}}}});
 }
 
