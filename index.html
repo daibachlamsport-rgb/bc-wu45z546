@@ -1031,7 +1031,7 @@ function renderQc(){
       const dsTk = (tk.netRevenue || 0) + (tk.transitValue || 0), dsAll = (t.netRevenue || 0) + (t.transitValue || 0);
       const cp = dsTk ? spentT / dsTk : null, muc = 1 / roasT;
       const chip = cp == null ? '' : cp <= muc ? `<span class="chip up">Đạt ≤ ${P(muc, 0)}</span>` : `<span class="chip dn">Cao hơn ${P(muc, 0)}</span>`;
-      return qcCard('Chi phí QC / doanh số', cp == null ? '—' : P(cp), `${SH(spentT)} QC gồm thuế ÷ ${SH(dsTk)} doanh số TikTok Shop - KHO AN KHÁNH (thành công ${SH(tk.netRevenue)} + đang chuyển ${SH(tk.transitValue)})<br>Trên toàn công ty: ${P(dsAll ? spentT / dsAll : null)} · CPO gồm thuế ${cpo == null ? '—' : SH(cpo * (1 + taxR))}/đơn`, chip);
+      return qcCard('Chi phí QC / doanh số', cp == null ? '—' : P(cp), `${SH(spentT)} QC gồm thuế ÷ ${SH(dsTk)} doanh số TikTok Shop - KHO AN KHÁNH (thành công ${SH(tk.netRevenue)} + đang chuyển ${SH(tk.transitValue)})<br>CPO gồm thuế ${cpo == null ? '—' : SH(cpo * (1 + taxR))}/đơn`, chip);
     })()
   ].join('');
   // khối AI: 3 hành động từ số liệu đang hiển thị
@@ -1718,7 +1718,7 @@ const CHU_THICH = [
   [/^Tổng chi phí QC/i, 'Tiền quảng cáo TikTok GMV Max (LIVE + sản phẩm) từ ngày 01 đến hết ngày dữ liệu, <b>ĐÃ GỒM thuế</b> (tiền chạy + thuế ~10% TikTok thu thêm, ghi ngay dưới). So với <b>hạn mức tháng 200 tr đã gồm thuế</b> (tuyệt đối không vượt). Nhịp chuẩn = số ngày đã qua ÷ số ngày của tháng: % hạn mức cao hơn nhịp là đang chi nhanh.'],
   [/^Doanh thu từ QC/i, 'Doanh thu (GMV) do <b>TikTok Ads</b> ghi nhận từ các đơn có quảng cáo. Số của TikTok, gồm cả đơn sau đó hủy/hoàn, nên cao hơn doanh số thực trên nhanh.vn.'],
   [/^ROAS|^ROI quảng cáo/i, 'Doanh thu từ QC ÷ chi phí QC (chưa thuế). Mục tiêu <b>20x</b>: 1 đồng quảng cáo mang về 20 đồng doanh thu. Vì doanh thu TikTok gồm cả đơn hủy/hoàn nên hiệu quả thật thấp hơn một chút.'],
-  [/^Chi phí QC \/ doanh số$/i, '= Tiền quảng cáo <b>GỒM THUẾ</b> ÷ doanh số các đơn <b>(thành công + đang luân chuyển)</b> của TikTok Shop (bán từ <b>KHO AN KHÁNH</b>) trên nhanh.vn, chưa VAT. Mục tiêu ≤ 5% (tương đương ROI 20). Dòng dưới: cùng cách tính nhưng chia cho doanh số cả công ty; <b>CPO</b> = tiền QC gồm thuế cho mỗi đơn quảng cáo mang về.'],
+  [/^Chi phí QC \/ doanh số$/i, '= Tiền quảng cáo <b>GỒM THUẾ</b> ÷ doanh số các đơn <b>(thành công + đang luân chuyển)</b> của TikTok Shop (bán từ <b>KHO AN KHÁNH</b>) trên nhanh.vn, chưa VAT. Mục tiêu ≤ 5% (tương đương ROI 20). <b>CPO</b> = tiền QC gồm thuế cho mỗi đơn quảng cáo mang về.'],
   [/^CIR/i, '<b>CIR</b> = chi phí QC ÷ doanh thu từ QC (càng thấp càng tốt, mục tiêu ≤ 5%). <b>CPO</b> = chi phí QC ÷ số đơn từ QC = tiền quảng cáo bỏ ra cho mỗi đơn. Dòng dưới: chi phí QC ÷ doanh số thuần cả công ty.'],
   [/^Chi phí QC \/ doanh số/i, 'Chi phí quảng cáo (chưa thuế) ÷ doanh số thuần cả công ty trên nhanh.vn: mỗi 100 đồng doanh số tốn bao nhiêu đồng quảng cáo.'],
   [/^Tồn kho/i, 'Tổng <b>giá vốn</b> hàng đang kinh doanh còn trong kho (không tính hàng ngừng bán, túi giấy, voucher). Các size gộp thành 1 mẫu.'],
