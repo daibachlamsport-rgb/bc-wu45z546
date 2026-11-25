@@ -233,6 +233,13 @@ nav button.alert.on::after{background:#DC2626;box-shadow:0 0 0 2px #0F172A}
 @media(max-width:900px){header{flex-wrap:wrap}header nav{order:3;width:100%}.cu{order:2}header>div:first-of-type{flex:1 1 100%;min-width:0}#meta{white-space:normal;word-break:break-word;line-height:1.5}header img{height:40px}.filter{gap:8px 12px}.filter label{width:100%}.filter select,.filter input{flex:1 1 auto}}
 /* điện thoại: đầu trang cao ~270px nên không ghim nữa (che 1/3 màn hình khi cuộn); thanh lọc con ghim sát mép trên */
 @media(max-width:900px){header{position:relative!important}.subnav,.cmp-bar{top:0!important}#meta{font-size:11.5px}}
+/* chú thích khi trỏ / chạm vào ô số (25/11/2026) */
+.tip-i{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;margin-left:5px;border-radius:50%;background:#E2E8F0;color:#475569;font:700 10px/1 system-ui,sans-serif;vertical-align:1px;text-transform:none;cursor:help}
+.co-tip{position:relative;cursor:help}
+.tip-bubble{display:none;position:absolute;left:10px;right:10px;top:calc(100% - 6px);z-index:40;background:#0F172A;color:#F8FAFC;border-radius:10px;padding:10px 12px;font:400 12.5px/1.5 system-ui,sans-serif;text-transform:none;letter-spacing:0;box-shadow:0 12px 28px rgba(15,23,42,.28);white-space:normal;text-align:left}
+.tip-bubble b{color:#FDE68A}
+.co-tip:hover .tip-bubble,.co-tip:focus .tip-bubble,.co-tip.tip-mo .tip-bubble{display:block}
+.co-tip:hover,.co-tip.tip-mo{z-index:41}
 body[data-theme=dark] header nav{background:#0F172A;border-color:#1E2A3D}
 body[data-theme=dark] .subnav{background:rgba(9,13,22,.94)}
 body[data-theme=dark] .subnav button{background:#121A28;color:#E2E8F0;border-color:#1E2A3D}
@@ -1011,7 +1018,8 @@ function renderQc(){
   const budChip = spent > budget ? '<span class="chip dn">Vượt ngân sách</span>' : '<span class="chip up">Trong ngân sách</span>';
   const qcCard = (lbl, val, sub, chip) => `<div class="card qc-kpi"><div class="lbl">${lbl}</div>${chip ? `<div class="badge-r">${chip}</div>` : ''}<div class="big">${val}</div><div class="sub">${sub}</div></div>`;
   $('#qc-kpi').innerHTML = [
-    qcCard('Tổng chi phí QC', SH(spent), `Ngân sách ${SH(budget)} (${days.length} ngày × hạn mức ${SH(cap)}) · đã dùng ${P(spent / budget)}`, budChip),
+    // 25/11/2026 (anh hỏi): ghi rõ CHƯA gồm thuế 10% TikTok thu thêm, kèm số đã gồm thuế
+    qcCard('Tổng chi phí QC', SH(spent), `<b>Chưa gồm thuế</b>${ads.tax ? ` · thuế ước tính ${SH(spent * ads.tax.effectiveRate)} → <b>gồm thuế ${SH(spent * (1 + ads.tax.effectiveRate))}</b>` : ''}<br>Ngân sách ${SH(budget)} (${days.length} ngày × hạn mức ${SH(cap)}) · đã dùng ${P(spent / budget)}`, budChip),
     qcCard('Doanh thu từ QC', SH(revQc), `${rev.length} ngày có số liệu, từ ${dmy(ads.dataFrom)} · ${N(ord)} đơn`, ''),
     qcCard('ROAS', roas == null ? '—' : roas.toFixed(1).replace('.', ',') + 'x', `Doanh thu QC ÷ chi phí QC · mục tiêu ${roasT}x`, roasChip),
     qcCard('CIR &amp; CPO', cir == null ? '—' : P(cir), `CPO ${cpo == null ? '—' : SH(cpo)} / đơn · ${P(cirAll)} trên tổng doanh thu công ty`, '')
@@ -1684,6 +1692,53 @@ function navInit(){
   nav.querySelectorAll('button').forEach(b => b.onclick = () => show(b.dataset.t));
   window.addEventListener('hashchange', () => show(location.hash.slice(1)));
 }
+
+/* ---------- CHÚ THÍCH Ô SỐ (25/11/2026, anh yêu cầu): trỏ chuột (máy tính) hoặc chạm (điện thoại) vào ô để xem cách tính ---------- */
+const CHU_THICH = [
+  [/^Doanh số thuần/i, 'Tổng tiền các đơn <b>THÀNH CÔNG</b> (khách đã nhận), sau giảm giá, <b>chưa VAT 8%</b>. Không tính đơn đang giao, đang hoàn, đã hủy. KHO AN KHÁNH tính theo ngày ghi chú trên biên bản bàn giao; Đông Anh theo ngày bán.'],
+  [/^Đang luân chuyển/i, 'Tiền các đơn <b>đã gửi đi nhưng chưa giao xong</b> (đang giao) hoặc đang hoàn về, chưa VAT. <b>Chưa tính vào doanh số</b>; phần lớn sẽ thành công trong vài ngày tới.'],
+  [/^Hàng hoàn|^Tỷ lệ hàng hoàn/i, 'Giá trị các đơn khách <b>không nhận</b>, đã hoàn về kho. Tỷ lệ hoàn = số đơn hoàn ÷ (đơn thành công + đơn hoàn), không tính đơn hủy. Ngưỡng cảnh báo 5%.'],
+  [/^Tiến độ chỉ tiêu tháng|^Tháng \d+ \(đến/i, 'Doanh số tính chỉ tiêu ÷ chỉ tiêu tháng (cùng chưa VAT). Tất cả kho: chỉ tiêu lấy theo <b>Sheet KẾ HOẠCH NĂM</b>. <b>Không tính CTV Tuấn Anh</b> (không có chỉ tiêu). <b>Nhịp chuẩn</b> = số ngày đã qua ÷ số ngày của tháng: % đạt ≥ nhịp chuẩn là đúng tiến độ.'],
+  [/^Tiến độ KHO AN KHÁNH/i, 'Doanh số KHO AN KHÁNH ÷ chỉ tiêu kho (tổng chỉ tiêu các kênh anh giao đầu tháng, chưa VAT). Không tính CTV Tuấn Anh. So với nhịp chuẩn = số ngày đã qua ÷ số ngày của tháng.'],
+  [/^Chỉ tiêu cả năm/i, 'Tổng chỉ tiêu 12 tháng theo <b>Sheet KẾ HOẠCH NĂM 2026</b> (dòng TARGET, số có VAT), quy về chưa VAT bằng cách chia 1,08 để so cùng doanh số.'],
+  [/^Thực tế đến tháng hiện tại|^Đã đạt đến hết/i, 'Tổng doanh số từ tháng 1 đến nay, chưa VAT. Các tháng trước lấy từ báo cáo "Doanh thu theo cửa hàng" của nhanh.vn (đã trừ hàng trả); tháng này lấy theo báo cáo này.'],
+  [/^Đạt chỉ tiêu các tháng đã có số/i, 'Thực tế ÷ tổng chỉ tiêu của các tháng đã có số. Tháng hiện tại tính <b>trọn chỉ tiêu cả tháng</b> nên % này sẽ còn tăng đến cuối tháng.'],
+  [/^Tỷ lệ đạt$/i, 'Thực tế từ đầu năm ÷ chỉ tiêu cả năm (chưa VAT).'],
+  [/^AOV/i, 'Giá trị trung bình một đơn thành công = doanh số thuần ÷ số đơn thành công.'],
+  [/^Tổng chi phí QC/i, 'Tiền chạy quảng cáo TikTok GMV Max (LIVE + sản phẩm) từ ngày 01 đến hết ngày dữ liệu, <b>CHƯA gồm thuế 10%</b> TikTok thu thêm (số gồm thuế ghi ngay dưới). "Ngân sách" = số ngày × hạn mức 6 tr/ngày để xem có chi vượt nhịp không; hạn mức cả tháng 200 tr.'],
+  [/^Doanh thu từ QC/i, 'Doanh thu (GMV) do <b>TikTok Ads</b> ghi nhận từ các đơn có quảng cáo. Số của TikTok, gồm cả đơn sau đó hủy/hoàn, nên cao hơn doanh số thực trên nhanh.vn.'],
+  [/^ROAS|^ROI quảng cáo/i, 'Doanh thu từ QC ÷ chi phí QC (chưa thuế). Mục tiêu <b>20x</b>: 1 đồng quảng cáo mang về 20 đồng doanh thu. Vì doanh thu TikTok gồm cả đơn hủy/hoàn nên hiệu quả thật thấp hơn một chút.'],
+  [/^CIR/i, '<b>CIR</b> = chi phí QC ÷ doanh thu từ QC (càng thấp càng tốt, mục tiêu ≤ 5%). <b>CPO</b> = chi phí QC ÷ số đơn từ QC = tiền quảng cáo bỏ ra cho mỗi đơn. Dòng dưới: chi phí QC ÷ doanh số thuần cả công ty.'],
+  [/^Chi phí QC \/ doanh số/i, 'Chi phí quảng cáo (chưa thuế) ÷ doanh số thuần cả công ty trên nhanh.vn: mỗi 100 đồng doanh số tốn bao nhiêu đồng quảng cáo.'],
+  [/^Tồn kho/i, 'Tổng <b>giá vốn</b> hàng đang kinh doanh còn trong kho (không tính hàng ngừng bán, túi giấy, voucher). Các size gộp thành 1 mẫu.'],
+  [/^Tồn lâu chưa bán/i, 'Hàng còn tồn, <b>nhập hơn 90 ngày</b> mà kho đó <b>không bán được cái nào</b> trong 90 ngày gần nhất. Tính theo giá vốn. Nên xả hoặc chuyển kho.'],
+  [/^Bán chậm/i, 'Có bán trong 90 ngày nhưng tồn đủ bán <b>hơn 120 ngày</b> theo tốc độ bán 90 ngày gần nhất. Tính theo giá vốn.'],
+  [/^Top 15 bán chạy/i, 'Doanh thu chưa VAT của 15 mẫu bán nhiều tiền nhất từ đầu tháng ở kho đang xem.'],
+  [/^Tiền nhập hàng từ NCC/i, 'Tiền trên phiếu nhập hàng nhà cung cấp (theo giá nhập) trừ phiếu trả NCC, tính theo <b>ngày ghi chú trên phiếu</b>. Đây là tiền hàng phải trả, <b>không phải số đã thanh toán</b> (công nợ NCC do kế toán theo dõi).'],
+  [/^TikTok đã trả vào ví/i, 'Tiền TikTok đã quyết toán vào <b>ví shop</b> trong tháng, đã trừ phí sàn và tiền TikTok tự trừ để trả quảng cáo. Chưa phải tiền đã rút về ngân hàng.'],
+  [/^TikTok chưa quyết toán/i, 'Tiền đơn TikTok <b>đang giữ</b> (gồm đơn chưa giao xong). Số do TikTok ước tính, có thể giảm nếu khách trả hàng. Không cộng với "hàng đang giao" vì trùng nhau.'],
+  [/^Hàng đang giao/i, 'Giá trị (chưa VAT) các đơn đang giao hoặc đang hoàn về của mọi tháng, tiền chưa về tay.'],
+  [/^Đơn cần biên bản|^Đã có biên bản|^Thiếu biên bản/i, 'Đơn ngoài TikTok/Shopee (CTV, Zalo, web, sỉ...) đã xử lý phải nằm trong <b>biên bản bàn giao</b> cho đơn vị vận chuyển. Đơn thiếu biên bản <b>chưa được tính doanh số</b>.'],
+  [/^Doanh thu 01–|^Người dẫn đầu/i, 'Doanh thu cửa hàng Đông Anh theo <b>người thu ngân</b> trên nhanh.vn = tổng bán − tổng trả − chiết khấu, chưa VAT.'],
+  [/^Kho An Khánh$|^Cửa hàng Đông Anh$|^Tổng hai kho$/i, 'Doanh số thuần (chưa VAT) của tháng đang chọn. Tháng 7, 8, 10 là số kế toán; tháng hiện tại là nhanh.vn đến hết ngày dữ liệu.'],
+  [/^TB doanh số \/ ngày/i, 'Doanh số thuần ÷ số ngày của khoảng đang so. Dùng để so hai tháng dài ngắn khác nhau cho công bằng.'],
+  [/^Tháng \d+\/\d{4}$/i, 'Doanh số thuần cả tháng từ báo cáo kế toán (Báo cáo KQKD). Tháng 9 chỉ có tổng 11 nguồn đối soát, chưa gồm bán lẻ Đông Anh và CTV Tuấn Anh.'],
+  [/^KHO AN KHÁNH$|^LI-NING ĐÔNG ANH$|^Li-Ning Đông Anh$/i, 'Doanh số thuần của kho trong tháng, chưa VAT. % đạt = doanh số tính chỉ tiêu ÷ chỉ tiêu kho (KHO AN KHÁNH không tính CTV Tuấn Anh). Hàng hoàn và đang luân chuyển chưa tính vào doanh số.'],
+  [/^Dữ liệu đến hết/i, 'Ngày cuối cùng có số. Báo cáo chỉ lấy đến <b>hết hôm qua</b> vì đơn hôm nay còn đang xử lý. Tự cập nhật 07:25 mỗi sáng.'],
+];
+function ganChuThich(){
+  document.querySelectorAll('.card .k, .card .lbl').forEach((el) => {
+    const card = el.closest('.card'); if (!card || card.dataset.tip) return;
+    const ten = el.textContent.trim(), m = CHU_THICH.find(([re]) => re.test(ten)); if (!m) return;
+    card.dataset.tip = '1'; card.classList.add('co-tip'); card.tabIndex = 0;
+    el.insertAdjacentHTML('beforeend', '<span class="tip-i" aria-hidden="true">i</span>');
+    card.insertAdjacentHTML('beforeend', `<div class="tip-bubble" role="tooltip">${m[1]}</div>`);
+  });
+}
+// điện thoại không có trỏ chuột: chạm vào ô để mở/đóng chú thích
+document.addEventListener('click', (e) => { const c = e.target.closest('.co-tip'); document.querySelectorAll('.co-tip.tip-mo').forEach((x) => { if (x !== c) x.classList.remove('tip-mo'); }); if (c) c.classList.toggle('tip-mo'); });
+// các ô được vẽ lại khi đổi bộ lọc -> gắn chú thích lại
+let __tipH = null; new MutationObserver(() => { clearTimeout(__tipH); __tipH = setTimeout(ganChuThich, 120); }).observe(document.querySelector('main'), {childList: true, subtree: true});
 
 ovInit(); renderOvBrand(); renderOver(); renderOverKho(); renderGrowth(); renderKho(); renderKenh(); renderNv(); renderDon(); renderQc(); renderNam(); renderKt();
 renderLs(); renderSoSanh(); renderSanPham(); renderDongTien(); renderCu(); setupFilter(); applyFilter(); setupTheme(); navInit();
