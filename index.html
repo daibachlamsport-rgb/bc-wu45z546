@@ -480,12 +480,10 @@ button.btn{background:#DC2626;color:var(--card);border:0;padding:9px 14px;border
       <h3>Dữ liệu đang xem</h3>
       <div id="cu-now"></div>
     </div>
-    <h2>Lấy dữ liệu mới nhất</h2>
+    <h2>Tự cập nhật</h2>
     <div class="card">
-      <p>Bấm nút dưới đây để sao chép yêu cầu, rồi dán vào khung chat với Claude. Claude sẽ kéo số liệu mới nhất từ nhanh.vn, dựng lại báo cáo và cập nhật trang này.</p>
-      <button class="btn" id="cu-copy" type="button">Sao chép yêu cầu cập nhật</button>
-      <span class="note" id="cu-msg"></span>
-      <p class="note">Trang này là file tĩnh nên không tự gọi Claude. Muốn tự động hơn cần đặt lịch cập nhật, em có thể làm thêm.</p>
+      <p>Báo cáo tự cập nhật lúc <b>07:25 mỗi sáng</b>: lấy số đến hết ngày hôm qua từ nhanh.vn và TikTok, đăng lại trang này và gửi tin tóm tắt qua Zalo. Không cần bấm gì.</p>
+      <p class="note">Cần số mới giữa ngày thì nhắn Claude "chạy báo cáo kinh doanh".</p>
     </div>
     <h2>Lịch sử lần cập nhật</h2>
     <div class="card wrap"><table id="cu-log"></table></div>
@@ -1619,11 +1617,6 @@ function renderCu(){
     ['18/11', 'Dữ liệu đến hết 18/11, thêm bộ lọc thời gian, lịch sử tháng và tab nhân viên Đông Anh']
   ];
   $('#cu-log').innerHTML = `<tr><th>Dữ liệu đến</th><th>Nội dung</th></tr>` + log.map(([d,t]) => `<tr><td>${d}</td><td style="white-space:normal;text-align:left">${esc(t)}</td></tr>`).join('');
-  $('#cu-copy').onclick = async () => {
-    const text = 'Cập nhật báo cáo kinh doanh của Đại Bách Lâm: lấy dữ liệu mới nhất từ nhanh.vn đến hôm qua gồm doanh số theo kho, kênh và nguồn đơn; doanh thu theo nguồn đơn chạy quảng cáo; chi phí quảng cáo theo ngày và theo từng nền tảng (TikTok Ads, Facebook Ads, Shopee Ads). Sau đó dựng lại báo cáo và cập nhật trang web.';
-    try { await navigator.clipboard.writeText(text); $('#cu-msg').textContent = 'Đã sao chép. Dán vào khung chat với Claude.'; }
-    catch (e) { $('#cu-msg').textContent = 'Không sao chép được tự động. Hãy copy: ' + text; }
-  };
 }
 
 /* ---------- ĐIỀU HƯỚNG ---------- */
@@ -1667,11 +1660,7 @@ function navInit(){
   // 5 tab chính nằm trong header (viên thuốc nổi)
   nav.innerHTML = GROUP_NAV.map(([id, lbl]) => `<button type="button" data-t="${id}">${lbl}</button>`).join('');
   hdr.insertBefore(nav, hd);
-  // nút Cập nhật nổi bật cạnh Sáng/Tối
-  const cu = document.createElement('button');
-  cu.id = 'cuBtn'; cu.className = 'cu'; cu.type = 'button'; cu.textContent = 'Cập nhật';
-  cu.onclick = () => show('capnhat');
-  hd.insertBefore(cu, hd.firstChild);
+  // 25/11/2026 (anh duyệt): bỏ nút "Cập nhật" - báo cáo tự cập nhật 07:25 mỗi ngày
   // thanh điều hướng phụ, và sắp xếp các mục theo nhóm
   const sub = document.createElement('div'); sub.id = 'subnav'; sub.className = 'subnav';
   main.insertBefore(sub, main.firstChild);
