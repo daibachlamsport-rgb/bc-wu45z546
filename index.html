@@ -1015,11 +1015,14 @@ function renderQc(){
   const cpo = ord ? costRev / ord : null;
   // chuẩn ROAS = mục tiêu của shop (20x), không phải chuẩn chung 4x
   const roasChip = roas == null ? '' : roas >= roasT ? `<span class="chip up">Đạt mục tiêu ≥ ${roasT}x</span>` : roas < roasT * 0.8 ? `<span class="chip dn">Cảnh báo &lt; ${String(roasT * 0.8).replace('.', ',')}x</span>` : '<span class="chip fl">Sát mục tiêu</span>';
-  const budChip = spent > budget ? '<span class="chip dn">Vượt ngân sách</span>' : '<span class="chip up">Trong ngân sách</span>';
+  // anh chốt 23/11/2026: hạn mức tháng 200 tr là ĐÃ GỒM THUẾ -> so chi phí + thuế (tỷ lệ thuế TikTok ước tính, mặc định 10%)
+  const taxR = ads.tax && ads.tax.effectiveRate ? ads.tax.effectiveRate : 0.1, spentT = spent * (1 + taxR);
+  const capThang = ads.monthlyCap || cap * meta.daysInPeriod, nhipQc = days.length / meta.daysInPeriod;
+  const budChip = spentT > capThang ? '<span class="chip dn">Vượt hạn mức tháng</span>' : spentT > capThang * nhipQc ? '<span class="chip fl">Chi nhanh hơn nhịp</span>' : '<span class="chip up">Trong ngân sách</span>';
   const qcCard = (lbl, val, sub, chip) => `<div class="card qc-kpi"><div class="lbl">${lbl}</div>${chip ? `<div class="badge-r">${chip}</div>` : ''}<div class="big">${val}</div><div class="sub">${sub}</div></div>`;
   $('#qc-kpi').innerHTML = [
     // 25/11/2026 (anh hỏi): ghi rõ CHƯA gồm thuế 10% TikTok thu thêm, kèm số đã gồm thuế
-    qcCard('Tổng chi phí QC', SH(spent), `<b>Chưa gồm thuế</b>${ads.tax ? ` · thuế ước tính ${SH(spent * ads.tax.effectiveRate)} → <b>gồm thuế ${SH(spent * (1 + ads.tax.effectiveRate))}</b>` : ''}<br>Ngân sách ${SH(budget)} (${days.length} ngày × hạn mức ${SH(cap)}) · đã dùng ${P(spent / budget)}`, budChip),
+    qcCard('Tổng chi phí QC', SH(spentT), `<b>Đã gồm thuế</b> (chi ${SH(spent)} + thuế ước tính ${SH(spent * taxR)})<br><b>${P(spentT / capThang)}</b> hạn mức tháng ${SH(capThang)} gồm thuế · nhịp chuẩn ${P(nhipQc)} · còn ${SH(Math.max(0, capThang - spentT))}`, budChip),
     qcCard('Doanh thu từ QC', SH(revQc), `${rev.length} ngày có số liệu, từ ${dmy(ads.dataFrom)} · ${N(ord)} đơn`, ''),
     qcCard('ROAS', roas == null ? '—' : roas.toFixed(1).replace('.', ',') + 'x', `Doanh thu QC ÷ chi phí QC · mục tiêu ${roasT}x`, roasChip),
     qcCard('CIR &amp; CPO', cir == null ? '—' : P(cir), `CPO ${cpo == null ? '—' : SH(cpo)} / đơn · ${P(cirAll)} trên tổng doanh thu công ty`, '')
@@ -1041,11 +1044,11 @@ function renderQc(){
   } else {
     ai.push('<b>Chi tiêu vượt ngưỡng:</b> chưa đủ dữ liệu để so CPO các ngày vượt 6 triệu với ngày còn lại.');
   }
-  // hạn mức tháng (200 tr) là trần thật; 6 tr/ngày chỉ là nhịp
-  const capM = ads.monthlyCap || cap * meta.daysInPeriod, remD = meta.daysInPeriod - days.length;
-  ai.push(`<b>Ngân sách:</b> đã chi ${SH(spent)}, bằng ${P(spent / capM)} hạn mức tháng ${SH(capM)} (nhịp chuẩn ${P(days.length / meta.daysInPeriod)}). ${spent > capM
-    ? `Đã vượt hạn mức tháng ${SH(spent - capM)}, cần dừng tăng chi.`
-    : remD > 0 ? `Còn ${SH(capM - spent)} cho ${remD} ngày còn lại; vẫn giữ hạn mức ${SH(cap)}/ngày${(capM - spent) / remD < cap ? `, và không quá ${SH((capM - spent) / remD)}/ngày để không vượt hạn mức tháng` : ''}.` : `Còn dư ${SH(capM - spent)}.`}`);
+  // hạn mức tháng (200 tr, ĐÃ GỒM THUẾ) là trần thật, tuyệt đối không vượt; 6 tr/ngày chỉ là nhịp
+  const capM = capThang, remD = meta.daysInPeriod - days.length;
+  ai.push(`<b>Ngân sách:</b> đã chi ${SH(spentT)} gồm thuế, bằng ${P(spentT / capM)} hạn mức tháng ${SH(capM)} gồm thuế (nhịp chuẩn ${P(nhipQc)}). ${spentT > capM
+    ? `Đã vượt hạn mức tháng ${SH(spentT - capM)}, cần dừng tăng chi.`
+    : remD > 0 ? (() => { const toiDa = (capM - spentT) / remD / (1 + taxR); return `Còn ${SH(capM - spentT)} gồm thuế cho ${remD} ngày còn lại, tức khoảng ${SH(toiDa)}/ngày tiền chạy (chưa thuế). ${toiDa >= cap ? `Vẫn giữ hạn mức ${SH(cap)}/ngày; chỉ tăng vào ngày quảng cáo tốt.` : `Thấp hơn hạn mức ${SH(cap)}/ngày: cần giảm chi về dưới ${SH(toiDa)}/ngày để không vượt 200 tr.`}`; })() : `Còn dư ${SH(capM - spentT)}.`}`);
   $('#qc-ai').innerHTML = ai.map(x => `<li>${x}</li>`).join('');
   // biểu đồ kết hợp: cột chi phí, đường hạn mức, đường ROAS ngày
   const overFlag = days.map(d => (d.cost || 0) > cap);
@@ -1121,8 +1124,8 @@ function renderKt(){
   }
   const lastDay = R.daily.length ? R.daily[R.daily.length-1].date : null;
   add('Ngày cuối có số liệu = ngày đọc (asOf)', meta.asOf, lastDay, lastDay === meta.asOf, x => x || '—');
-  const spent = (ads.daily||[]).reduce((a,d) => a + (d.cost||0), 0);
-  add('Chi phí QC tháng ≤ hạn mức tháng', ads.monthlyCap, spent, spent <= ads.monthlyCap, SH);
+  const spent = (ads.daily||[]).reduce((a,d) => a + (d.cost||0), 0) * (1 + (ads.tax && ads.tax.effectiveRate ? ads.tax.effectiveRate : 0.1));
+  add('Chi phí QC tháng (gồm thuế) ≤ hạn mức tháng 200 tr (gồm thuế)', ads.monthlyCap, spent, spent <= ads.monthlyCap, SH);
   const overD = (ads.daily||[]).filter(d => (d.cost||0) > ads.dailyCap).length;
   add('Chi phí QC: ngày vượt 6 triệu (số ngày)', 0, overD, overD === 0);
 
@@ -1705,7 +1708,7 @@ const CHU_THICH = [
   [/^Đạt chỉ tiêu các tháng đã có số/i, 'Thực tế ÷ tổng chỉ tiêu của các tháng đã có số. Tháng hiện tại tính <b>trọn chỉ tiêu cả tháng</b> nên % này sẽ còn tăng đến cuối tháng.'],
   [/^Tỷ lệ đạt$/i, 'Thực tế từ đầu năm ÷ chỉ tiêu cả năm (chưa VAT).'],
   [/^AOV/i, 'Giá trị trung bình một đơn thành công = doanh số thuần ÷ số đơn thành công.'],
-  [/^Tổng chi phí QC/i, 'Tiền chạy quảng cáo TikTok GMV Max (LIVE + sản phẩm) từ ngày 01 đến hết ngày dữ liệu, <b>CHƯA gồm thuế 10%</b> TikTok thu thêm (số gồm thuế ghi ngay dưới). "Ngân sách" = số ngày × hạn mức 6 tr/ngày để xem có chi vượt nhịp không; hạn mức cả tháng 200 tr.'],
+  [/^Tổng chi phí QC/i, 'Tiền quảng cáo TikTok GMV Max (LIVE + sản phẩm) từ ngày 01 đến hết ngày dữ liệu, <b>ĐÃ GỒM thuế</b> (tiền chạy + thuế ~10% TikTok thu thêm, ghi ngay dưới). So với <b>hạn mức tháng 200 tr đã gồm thuế</b> (tuyệt đối không vượt). Nhịp chuẩn = số ngày đã qua ÷ số ngày của tháng: % hạn mức cao hơn nhịp là đang chi nhanh.'],
   [/^Doanh thu từ QC/i, 'Doanh thu (GMV) do <b>TikTok Ads</b> ghi nhận từ các đơn có quảng cáo. Số của TikTok, gồm cả đơn sau đó hủy/hoàn, nên cao hơn doanh số thực trên nhanh.vn.'],
   [/^ROAS|^ROI quảng cáo/i, 'Doanh thu từ QC ÷ chi phí QC (chưa thuế). Mục tiêu <b>20x</b>: 1 đồng quảng cáo mang về 20 đồng doanh thu. Vì doanh thu TikTok gồm cả đơn hủy/hoàn nên hiệu quả thật thấp hơn một chút.'],
   [/^CIR/i, '<b>CIR</b> = chi phí QC ÷ doanh thu từ QC (càng thấp càng tốt, mục tiêu ≤ 5%). <b>CPO</b> = chi phí QC ÷ số đơn từ QC = tiền quảng cáo bỏ ra cho mỗi đơn. Dòng dưới: chi phí QC ÷ doanh số thuần cả công ty.'],
