@@ -279,6 +279,12 @@ body{padding-bottom:84px}
 .subnav,.cmp-bar{top:0!important}
 .tab{scroll-margin-top:12px}
 @media print{nav#nav{display:none!important}body{padding-bottom:0}}
+/* 26/11/2026: thanh tab dưới - không canh giữa khi tràn (phần tràn bên trái không kéo tới được); điện thoại: lưới 3 cột, thấy đủ mọi nút */
+nav#nav{justify-content:flex-start!important;-webkit-overflow-scrolling:touch;touch-action:pan-x}
+nav#nav>button:first-child{margin-left:auto}nav#nav>button:last-child{margin-right:auto}
+@media(max-width:760px){nav#nav{display:grid!important;grid-template-columns:repeat(3,1fr);gap:4px;width:calc(100% - 16px)!important;max-width:none;border-radius:18px!important;padding:5px!important;overflow:visible}
+nav#nav>button{margin:0!important;padding:7px 4px!important;font-size:12px!important;line-height:1.25;white-space:normal!important;text-align:center;border-radius:12px!important}
+body{padding-bottom:118px}}
 </style>
 </head>
 <body>
