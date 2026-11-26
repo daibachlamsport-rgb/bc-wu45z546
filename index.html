@@ -1901,14 +1901,21 @@ function ktInit(){
       <h3 style="margin-top:0">🔒 Mục dành cho kế toán</h3>
       <p class="note">Nhập mật khẩu để xem hàng đặt trước và soạn hợp đồng nhân sự.</p>
       <form id="kt-form" autocomplete="off"><input type="password" id="kt-mk" placeholder="Mật khẩu" style="padding:9px 10px;border:1px solid var(--line);border-radius:8px;width:100%;font:15px system-ui;background:var(--card);color:var(--ink)">
+      <label class="note" style="display:flex;gap:6px;align-items:center;margin:8px 0 0"><input type="checkbox" id="kt-nho" checked> Ghi nhớ trên máy này (lần sau tự mở)</label>
       <button class="btn" type="submit" style="margin-top:10px">Mở</button> <span class="note" id="kt-loi" style="color:var(--red)"></span></form>
     </div>
     <div id="kt-noi" style="display:none"></div>`;
   document.getElementById('kt-form').onsubmit = async e => {
     e.preventDefault(); const loi = document.getElementById('kt-loi'); loi.textContent = 'Đang mở…';
-    try { KT = await ktMoKhoa(document.getElementById('kt-mk').value); loi.textContent = ''; document.getElementById('kt-mk').value = ''; ktVe(); }
+    const mk = document.getElementById('kt-mk').value;
+    try { KT = await ktMoKhoa(mk); loi.textContent = ''; document.getElementById('kt-mk').value = '';
+      try { if (document.getElementById('kt-nho').checked) localStorage.setItem('dbl-kt-mk', mk); else localStorage.removeItem('dbl-kt-mk'); } catch (e2) {}
+      ktVe(); }
     catch (err) { loi.textContent = err.message; }
   };
+  // máy đã ghi nhớ mật khẩu -> tự mở (mật khẩu đổi thì xoá ghi nhớ, hiện lại ô nhập)
+  let nho = null; try { nho = localStorage.getItem('dbl-kt-mk'); } catch (e) {}
+  if (nho) ktMoKhoa(nho).then(d => { KT = d; ktVe(); }).catch(() => { try { localStorage.removeItem('dbl-kt-mk'); } catch (e) {} });
 }
 
 function ktVe(){
@@ -1916,13 +1923,13 @@ function ktVe(){
   const n = document.getElementById('kt-noi'); n.style.display = '';
   n.innerHTML = `<div class="seg" id="kt-muc"><button type="button" data-m="dt" class="on">Hàng đặt trước</button><button type="button" data-m="hd">Soạn hợp đồng</button></div>
     <div id="kt-dt" style="margin-top:12px"></div><div id="kt-hd" style="margin-top:12px;display:none"></div>
-    <p class="note" style="margin-top:14px"><button type="button" class="btn" id="kt-dong" style="background:#475569">🔒 Khoá lại</button></p>`;
+    <p class="note" style="margin-top:14px"><button type="button" class="btn" id="kt-dong" style="background:#475569">🔒 Khoá lại (quên mật khẩu trên máy này)</button></p>`;
   n.querySelectorAll('#kt-muc button').forEach(b => b.onclick = () => {
     n.querySelectorAll('#kt-muc button').forEach(x => x.classList.toggle('on', x === b));
     document.getElementById('kt-dt').style.display = b.dataset.m === 'dt' ? '' : 'none';
     document.getElementById('kt-hd').style.display = b.dataset.m === 'hd' ? '' : 'none';
   });
-  document.getElementById('kt-dong').onclick = () => { KT = null; n.innerHTML = ''; n.style.display = 'none'; document.getElementById('kt-khoa').style.display = ''; };
+  document.getElementById('kt-dong').onclick = () => { KT = null; try { localStorage.removeItem('dbl-kt-mk'); } catch (e) {} n.innerHTML = ''; n.style.display = 'none'; document.getElementById('kt-khoa').style.display = ''; };
   ktDatTruoc(); ktHopDong();
 }
 
