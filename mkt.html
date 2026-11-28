@@ -33,6 +33,15 @@ a{color:#2563EB}
   const gio = iso => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }); };
   const nho = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } };
   const ss = (k, v) => { try { if (v === undefined) return sessionStorage.getItem(k); if (v === null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch (e) { return null; } };
+  /* ô mật khẩu có nút con mắt (👁 hiện / 🙈 ẩn); loai: 'cur' = mật khẩu đang dùng, 'moi' = mật khẩu mới, 'tam' = mật khẩu tạm/hiện tại khi đổi (không để Chrome tự điền mật khẩu cũ) */
+  const pwIn = (name, ph, loai) => {
+    const ac = loai === 'cur' ? 'current-password' : loai === 'moi' ? 'new-password' : 'off';
+    const ro = loai === 'tam' ? ' readonly onfocus="this.removeAttribute(\'readonly\')"' : '';
+    return `<span class="mk-pw"><input class="mk-w100" type="password" name="${name}" placeholder="${esc(ph)}" autocomplete="${ac}" autocapitalize="none" spellcheck="false" required${ro}><button type="button" class="mk-eye" data-a="eye" tabindex="-1" title="Hiện / ẩn mật khẩu" aria-label="Hiện hoặc ẩn mật khẩu">👁</button></span>`;
+  };
+  const tamHtml = (u, pw) => `<div class="mk-card" style="border-color:#B45309"><b>Mật khẩu tạm của ${esc(u)}:</b>
+    <div class="mk-row" style="margin-top:6px"><span class="mk-pw" style="max-width:300px;flex:1"><input class="mk-w100" type="password" readonly value="${esc(pw)}" autocomplete="off" style="font-family:ui-monospace,Consolas,monospace;font-size:17px"><button type="button" class="mk-eye" data-a="eye" tabindex="-1" title="Hiện / ẩn" aria-label="Hiện hoặc ẩn mật khẩu">👁</button></span><button type="button" class="mk-btn s" data-a="chepTam" data-pw="${esc(pw)}">Sao chép</button></div>
+    <p class="mk-n">Chỉ hiện 1 lần – anh đưa riêng cho người đó (không gửi vào nhóm chung). Họ phải đặt mật khẩu mới ở lần đăng nhập đầu.</p></div>`;
   const chip = (t, k) => `<span class="mk-c mk-${k || 'n'}">${esc(t)}</span>`;
   const so = v => v == null ? '—' : Number(v).toLocaleString('vi-VN');
   const linkify = t => esc(t).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/@([a-z0-9._]+)/gi, '<b class="mk-at">@$1</b>');
@@ -72,6 +81,7 @@ a{color:#2563EB}
 .mk-btn.p{background:var(--mk-acc);border-color:var(--mk-acc);color:#fff}.mk-btn.g{background:#15803D;border-color:#15803D;color:#fff}.mk-btn.s{padding:4px 9px;font-size:12px}.mk-btn:disabled{opacity:.5;cursor:default}
 .mk input,.mk select,.mk textarea{font:16px system-ui,sans-serif;padding:8px 10px;border:1px solid var(--line,#E2E8F0);border-radius:8px;background:var(--card,#fff);color:var(--ink,#0F172A);max-width:100%}
 .mk input[type=checkbox]{width:18px;height:18px;padding:0}
+.mk-pw{position:relative;display:block}.mk-pw input{padding-right:46px}.mk-eye{position:absolute;right:2px;top:50%;transform:translateY(-50%);border:0;background:none;font-size:19px;line-height:1;cursor:pointer;padding:8px 10px;color:var(--muted,#64748B)}.mk-eye.on{color:var(--mk-acc)}
 .mk-w100{width:100%}.mk-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .mk-err{color:#DC2626;font-size:13px;min-height:18px}.mk-ok2{color:#15803D;font-size:13px}
 .mk-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -114,7 +124,7 @@ a{color:#2563EB}
     S.root.innerHTML = `<div class="mk-card mk-login"><h3>📣 Phòng Marketing – đăng nhập</h3>
     <p class="mk-n" style="margin-top:0">Nhập tài khoản do anh Công cấp. Quên mật khẩu thì báo anh cấp lại mật khẩu tạm.</p>
     <form data-f="login" autocomplete="on"><p><input class="mk-w100" name="u" placeholder="Tên đăng nhập (vd: hoaluong)" autocomplete="username" autocapitalize="none" required></p>
-    <p><input class="mk-w100" name="p" type="password" placeholder="Mật khẩu" autocomplete="current-password" required></p>
+    <p>${pwIn('p', 'Mật khẩu', 'cur')}</p>
     <p><label class="mk-row"><input type="checkbox" name="nho" checked> <span>Ghi nhớ đăng nhập trên máy này (30 ngày)</span></label></p>
     <p><button class="mk-btn p mk-w100" type="submit">Đăng nhập</button></p><div class="mk-err" id="mk-le">${esc(loi || '')}</div></form>
     <p class="mk-n">Sai 5 lần liên tiếp sẽ bị khóa 15 phút.</p></div>`;
@@ -129,9 +139,10 @@ a{color:#2563EB}
   function veDoiMk(batBuoc) {
     S.root.innerHTML = `<div class="mk-card mk-login"><h3>🔑 ${batBuoc ? 'Đặt mật khẩu mới' : 'Đổi mật khẩu'}</h3>
     ${batBuoc ? '<p class="mk-n" style="margin-top:0">Đây là lần đầu (hoặc anh vừa cấp lại mật khẩu tạm) – bạn cần tự đặt mật khẩu riêng.</p>' : ''}
-    <form data-f="doiMk"><p><input class="mk-w100" type="password" name="old" placeholder="${batBuoc ? 'Mật khẩu tạm' : 'Mật khẩu hiện tại'}" autocomplete="current-password" required></p>
-    <p><input class="mk-w100" type="password" name="nw" placeholder="Mật khẩu mới (≥ 8 ký tự, có chữ và số)" autocomplete="new-password" required></p>
-    <p><input class="mk-w100" type="password" name="nw2" placeholder="Nhập lại mật khẩu mới" autocomplete="new-password" required></p>
+    <form data-f="doiMk" autocomplete="off"><input type="text" name="tendn" value="${esc(S.me ? S.me.user : '')}" autocomplete="username" readonly tabindex="-1" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+    <p>${pwIn('old', batBuoc ? 'Mật khẩu tạm (anh đã đưa)' : 'Mật khẩu hiện tại', 'tam')}</p>
+    <p>${pwIn('nw', 'Mật khẩu mới (≥ 8 ký tự, có chữ và số)', 'moi')}</p>
+    <p>${pwIn('nw2', 'Nhập lại mật khẩu mới', 'moi')}</p>
     <p class="mk-row"><button class="mk-btn p" type="submit">Lưu mật khẩu mới</button>${batBuoc ? '' : '<button class="mk-btn" type="button" data-a="veKhung">Hủy</button>'}${batBuoc ? '<button class="mk-btn" type="button" data-a="dangXuat">Đăng xuất</button>' : ''}</p><div class="mk-err" id="mk-le"></div></form>
     <p class="mk-n">Mật khẩu chỉ lưu dạng mã hóa – kể cả anh và AI cũng không xem được.</p></div>`;
   }
@@ -168,6 +179,8 @@ a{color:#2563EB}
   /* ---------- hành động bấm ---------- */
   const ACT = {
     tab: b => { S.tamHtml = ''; nho('dbl-mkt-last', b.dataset.k); history.replaceState(null, '', '#mkt/' + b.dataset.k); chuyenTab(b.dataset.k); },
+    eye: b => { const i = b.parentNode.querySelector('input'); const hien = i.type === 'password'; i.type = hien ? 'text' : 'password'; b.textContent = hien ? '🙈' : '👁'; b.classList.toggle('on', hien); },
+    chepTam: async b => { try { await navigator.clipboard.writeText(b.dataset.pw); flash('Đã sao chép mật khẩu tạm', true); } catch (e) { const i = b.parentNode.querySelector('input'); i.type = 'text'; i.select(); flash('Chọn và sao chép thủ công (Ctrl+C)', true); } },
     veKhung: () => { veKhung(); chuyenTab(S.tab); },
     veDoiMk: () => veDoiMk(false),
     dangXuat: async () => { try { await api('logout'); } catch (e) {} dangXuatLocal(''); },
@@ -199,7 +212,7 @@ a{color:#2563EB}
     chatGui: () => chatGui(), chatKem: () => $('mk-file').click(),
     nhac: b => { const t = $('mk-nhap'); t.value += (t.value && !/\s$/.test(t.value) ? ' ' : '') + '@' + b.dataset.u + ' '; t.focus(); },
     // tài khoản
-    tkReset: async b => { if (!confirm('Cấp lại mật khẩu tạm cho ' + b.dataset.u + '? Mật khẩu cũ sẽ mất, người đó bị đăng xuất.')) return; const r = await api('userReset', { user: b.dataset.u }); S.tamHtml = `<div class="mk-card" style="border-color:#B45309"><b>Mật khẩu tạm của ${esc(b.dataset.u)}:</b> <code style="font-size:18px;user-select:all">${esc(r.tam)}</code><p class="mk-n">Chỉ hiện 1 lần – anh đưa riêng cho người đó (không gửi vào nhóm chung). Họ phải đặt mật khẩu mới ở lần đăng nhập đầu.</p></div>`; chuyenTab('tk'); },
+    tkReset: async b => { if (!confirm('Cấp lại mật khẩu tạm cho ' + b.dataset.u + '? Mật khẩu cũ sẽ mất, người đó bị đăng xuất.')) return; const r = await api('userReset', { user: b.dataset.u }); S.tamHtml = tamHtml(b.dataset.u, r.tam); chuyenTab('tk'); },
     tkKhoa: async b => { const khoa = b.dataset.k === '1'; if (!confirm((khoa ? 'Khóa' : 'Mở khóa') + ' tài khoản ' + b.dataset.u + '?')) return; await api('userLock', { user: b.dataset.u, lock: khoa }); chuyenTab('tk'); },
     tkLog: async () => { const r = await api('logList'); $('mk-log').innerHTML = '<table><tr><th>Lúc</th><th>Ai</th><th>Việc</th><th>Chi tiết</th></tr>' + r.log.map(x => `<tr><td>${gio(x.time)}</td><td>${esc(x.user)}</td><td>${esc(x.event)}</td><td>${esc(x.detail)}</td></tr>`).join('') + '</table>'; }
   };
@@ -230,7 +243,7 @@ a{color:#2563EB}
     },
     quay: async f => { try { await api('shootAdd', { week: S.wkQuay, item: { date: f.date.value, ma: f.ma.value, ten: f.ten.value, loai: f.loai.value, kenh: f.kenh.value, vj: 'Quang Huy', crew: 'Thành Long', note: f.note.value } }); flash('Đã thêm vào lịch', true); S.banNhap = null; chuyenTab('quay'); } catch (e) { $('mk-qe').textContent = e.message; } },
     cmt: async f => { const ref = f.dataset.ref; if (!f.text.value.trim()) return; try { await api('cmtPost', { ref, text: f.text.value }); await veCmt(ref); } catch (e) { flash(e.message, false); } },
-    tkAdd: async f => { try { const r = await api('userAdd', { user: f.user.value, ten: f.ten.value, vai: f.vai.value, loai: f.vai.value === 'crew' ? 'đăng ký' : 'cố định' }); S.tamHtml = `<div class="mk-card" style="border-color:#B45309"><b>Mật khẩu tạm của ${esc(f.user.value)}:</b> <code style="font-size:18px;user-select:all">${esc(r.tam)}</code><p class="mk-n">Chỉ hiện 1 lần.</p></div>`; chuyenTab('tk'); } catch (e) { $('mk-tke').textContent = e.message; } }
+    tkAdd: async f => { try { const r = await api('userAdd', { user: f.user.value, ten: f.ten.value, vai: f.vai.value, loai: f.vai.value === 'crew' ? 'đăng ký' : 'cố định' }); S.tamHtml = tamHtml(f.user.value, r.tam); chuyenTab('tk'); } catch (e) { $('mk-tke').textContent = e.message; } }
   };
 
   /* ---------- các tab ---------- */
