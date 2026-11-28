@@ -2180,11 +2180,46 @@ window.MKT_URL = "https://script.google.com/macros/s/AKfycbz3nygb0xU0mrrmRsp57zP
   const tamHtml = (u, pw) => `<div class="mk-card" style="border-color:#B45309"><b>Mật khẩu tạm của ${esc(u)}:</b>
     <div class="mk-row" style="margin-top:6px"><span class="mk-pw" style="max-width:300px;flex:1"><input class="mk-w100" type="password" readonly value="${esc(pw)}" autocomplete="off" style="font-family:ui-monospace,Consolas,monospace;font-size:17px"><button type="button" class="mk-eye" data-a="eye" tabindex="-1" title="Hiện / ẩn" aria-label="Hiện hoặc ẩn mật khẩu">👁</button></span><button type="button" class="mk-btn s" data-a="chepTam" data-pw="${esc(pw)}">Sao chép</button></div>
     <p class="mk-n">Chỉ hiện 1 lần – anh đưa riêng cho người đó (không gửi vào nhóm chung). Họ phải đặt mật khẩu mới ở lần đăng nhập đầu.</p></div>`;
+  /* ---- ẢNH ĐẠI DIỆN: lưu trong Sheet dạng JPEG nhỏ (≤100KB), chỉ người đã đăng nhập mới tải được (không để link công khai) ---- */
+  const AV_MAU = ['#DC2626', '#2563EB', '#16A34A', '#D97706', '#7C3AED', '#0891B2', '#DB2777', '#475569'];
+  const tenCua = u => (S.nguoi.find(n => n.user === u) || (S.me && S.me.user === u ? S.me : null) || {}).ten || u;
+  const avSt = u => { const n = S.nguoi.find(x => x.user === u) || (S.me && S.me.user === u ? S.me : null); return n ? (n.av || 0) : 0; };
+  const avHtml = (u, size) => {
+    size = size || 28; const t = tenCua(u), st = avSt(u), c = S.av[u], ch = (String(t).trim().split(/\s+/).pop() || '?').charAt(0).toUpperCase(), mau = AV_MAU[[...u].reduce((a, x) => a + x.charCodeAt(0), 0) % AV_MAU.length];
+    const co = st && c && c.st === st && c.img;
+    return `<span class="mk-av" data-av="${esc(u)}" title="${esc(t)}" style="width:${size}px;height:${size}px;font-size:${Math.round(size * .45)}px;background:${co ? 'transparent' : mau}">${co ? `<img alt="" src="${c.img}">` : esc(ch)}</span>`;
+  };
+  const avTen = (u, size) => `<span class="mk-nm">${avHtml(u, size || 24)}<b>${esc(tenCua(u))}</b></span>`;
+  let avBusy = false;
+  async function avLoad() {
+    if (!S.tok || !S.me || avBusy) return;
+    const can = new Set(); S.root.querySelectorAll('[data-av]').forEach(e => { const u = e.dataset.av, st = avSt(u); if (st && !(S.av[u] && S.av[u].st === st)) can.add(u); });
+    if (!can.size) return; avBusy = true;
+    try { const r = await api('avGet', { users: [...can] }); Object.keys(r.av).forEach(u => { S.av[u] = r.av[u]; }); nho('dbl-mkt-av', JSON.stringify(S.av)); S.root.querySelectorAll('[data-av]').forEach(e => { const u = e.dataset.av, c = S.av[u]; if (c && c.st === avSt(u)) { const sz = parseInt(e.style.width, 10); e.style.background = 'transparent'; e.innerHTML = `<img alt="" src="${c.img}">`; } }); } catch (e) {}
+    avBusy = false;
+  }
+  function avThuNho(file) {
+    return new Promise((ok, loi) => {
+      if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return loi(new Error('Chỉ nhận ảnh JPG, PNG hoặc WebP'));
+      const r = new FileReader(); r.onerror = () => loi(new Error('Không đọc được ảnh'));
+      r.onload = () => { const im = new Image(); im.onerror = () => loi(new Error('Ảnh bị lỗi hoặc không mở được')); im.onload = () => {
+        const N = 256, cv = document.createElement('canvas'); cv.width = cv.height = N; const g = cv.getContext('2d'), m = Math.min(im.width, im.height), sx = (im.width - m) / 2, sy = (im.height - m) / 2;
+        g.fillStyle = '#fff'; g.fillRect(0, 0, N, N); g.drawImage(im, sx, sy, m, m, 0, 0, N, N);
+        let q = 0.88, out = cv.toDataURL('image/jpeg', q); while (out.length * 0.75 > 90 * 1024 && q > 0.3) { q -= 0.08; out = cv.toDataURL('image/jpeg', q); }
+        out.length * 0.75 > 100 * 1024 ? loi(new Error('Ảnh vẫn quá nặng sau khi thu nhỏ')) : ok(out); }; im.src = r.result; };
+      r.readAsDataURL(file);
+    });
+  }
+  async function avLuu(user, file) {
+    try { const img = await avThuNho(file); const r = await api('avSet', { user: user, img: img }); S.av[user] = { st: r.st, img: img }; nho('dbl-mkt-av', JSON.stringify(S.av)); await lamMoiNguoi(); flash('Đã đổi ảnh đại diện', true); if (S.tab === 'tk') chuyenTab('tk'); else avCapNhatDom(); } catch (e) { flash(e.message, false); }
+  }
+  async function lamMoiNguoi() { const r = await api('me'); S.me = r.me; S.nguoi = r.nguoi; }
+  function avCapNhatDom() { const h = $('mk-hdr-av'); if (h) h.innerHTML = avHtml(S.me.user, 30); S.root.querySelectorAll('[data-av]').forEach(e => { const u = e.dataset.av, sz = parseInt(e.style.width, 10) || 28; e.outerHTML = avHtml(u, sz); }); avLoad(); }
   const chip = (t, k) => `<span class="mk-c mk-${k || 'n'}">${esc(t)}</span>`;
   const so = v => v == null ? '—' : Number(v).toLocaleString('vi-VN');
   const linkify = t => esc(t).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/@([a-z0-9._]+)/gi, '<b class="mk-at">@$1</b>');
 
-  const S = { tok: null, me: null, nguoi: [], tab: 'tq', root: null, ver: 0, chatId: 0, chatTin: [], tuan: null, wkLich: null, wkQuay: null, goiy: null, loc: 'all', moPhieu: {}, thongBao: [], hen: null, tong: {}, banNhap: null };
+  const S = { av: {}, tok: null, me: null, nguoi: [], tab: 'tq', root: null, ver: 0, chatId: 0, chatTin: [], tuan: null, wkLich: null, wkQuay: null, goiy: null, loc: 'all', moPhieu: {}, thongBao: [], hen: null, tong: {}, banNhap: null };
   const url = () => window.MKT_URL;
 
   async function api(a, o) {
@@ -2220,6 +2255,10 @@ window.MKT_URL = "https://script.google.com/macros/s/AKfycbz3nygb0xU0mrrmRsp57zP
 .mk input,.mk select,.mk textarea{font:16px system-ui,sans-serif;padding:8px 10px;border:1px solid var(--line,#E2E8F0);border-radius:8px;background:var(--card,#fff);color:var(--ink,#0F172A);max-width:100%}
 .mk input[type=checkbox]{width:18px;height:18px;padding:0}
 .mk-pw{position:relative;display:block}.mk-pw input{padding-right:46px}.mk-eye{position:absolute;right:2px;top:50%;transform:translateY(-50%);border:0;background:none;font-size:19px;line-height:1;cursor:pointer;padding:8px 10px;color:var(--muted,#64748B)}.mk-eye.on{color:var(--mk-acc)}
+.mk-av{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;overflow:hidden;flex:none;color:#fff;font-weight:700;vertical-align:middle;line-height:1;user-select:none}.mk-av img{width:100%;height:100%;object-fit:cover;display:block}
+.mk-mr{display:flex;gap:6px;align-items:flex-end;max-width:92%}.mk-mr.me{align-self:flex-end;flex-direction:row-reverse}.mk-mr:not(.me){align-self:flex-start}.mk-mr .mk-tn{max-width:none;min-width:0}
+.mk-nm{display:inline-flex;align-items:center;gap:6px;vertical-align:middle}.mk-me{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line,#E2E8F0);background:var(--card,#fff);color:var(--ink,#0F172A);border-radius:99px;padding:3px 12px 3px 3px;cursor:pointer;font:600 13px system-ui,sans-serif;position:relative}
+.mk-pw{position:relative}
 .mk-w100{width:100%}.mk-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .mk-err{color:#DC2626;font-size:13px;min-height:18px}.mk-ok2{color:#15803D;font-size:13px}
 .mk-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -2250,10 +2289,11 @@ window.MKT_URL = "https://script.google.com/macros/s/AKfycbz3nygb0xU0mrrmRsp57zP
 
   /* ---------- khung ---------- */
   window.mktInit = function (root) {
-    css(); S.root = root; root.classList.add('mk');
+    css(); S.root = root; root.classList.add('mk'); try { S.av = JSON.parse(nho('dbl-mkt-av') || '{}') || {}; } catch (e) { S.av = {}; }
+    new MutationObserver(() => { clearTimeout(S.avT); S.avT = setTimeout(avLoad, 150); }).observe(root, { childList: true, subtree: true });
     root.addEventListener('click', onClick); root.addEventListener('change', onChange);
     root.addEventListener('submit', e => { e.preventDefault(); const f = e.target; if (f.dataset.f) FORM[f.dataset.f](f); });
-    document.addEventListener('click', e => { if (S.root && !e.target.closest('.mk-bell') && !e.target.closest('.mk-pan')) { const p = S.root.querySelector('.mk-pan'); if (p) p.style.display = 'none'; } });
+    document.addEventListener('click', e => { const am = S.root && S.root.querySelector('#mk-avm'); if (am && !e.target.closest('.mk-me') && !e.target.closest('#mk-avm')) am.style.display = 'none'; if (S.root && !e.target.closest('.mk-bell') && !e.target.closest('.mk-pan')) { const p = S.root.querySelector('#mk-pan'); if (p) p.style.display = 'none'; } });
     const t = nho('dbl-mkt-tok') || ss('dbl-mkt-tok');
     if (t) { S.tok = t; khoiDong(); } else veDangNhap();
   };
@@ -2291,10 +2331,10 @@ window.MKT_URL = "https://script.google.com/macros/s/AKfycbz3nygb0xU0mrrmRsp57zP
   }
   function veKhung() {
     const m = S.me;
-    S.root.innerHTML = `<div class="mk-top"><h2>📣 Phòng Marketing</h2><span class="mk-n">${esc(m.ten)} · ${esc(VAI[m.vai])}</span>
+    S.root.innerHTML = `<div class="mk-top"><h2>📣 Phòng Marketing</h2><span style="position:relative"><button type="button" class="mk-me" data-a="avMenu" title="Ảnh đại diện"><span id="mk-hdr-av">${avHtml(m.user, 30)}</span><span>${esc(m.ten)}<small style="display:block;font-weight:400;color:var(--muted,#64748B)">${esc(VAI[m.vai])}</small></span></button><div class="mk-pan" id="mk-avm" style="display:none;left:0;right:auto;width:210px"><div data-a="avDoi" data-u="${esc(m.user)}">📷 Đổi ảnh đại diện</div>${m.av ? `<div data-a="avXoa" data-u="${esc(m.user)}">🗑 Xóa ảnh (dùng chữ cái)</div>` : ''}</div></span><input type="file" id="mk-avf" accept="image/jpeg,image/png,image/webp" style="display:none">
       <div class="r"><span class="mk-bell" style="position:relative"><button class="mk-btn mk-bell" data-a="bell">🔔<i id="mk-nb"></i></button><div class="mk-pan" style="display:none" id="mk-pan"></div></span>
       <button class="mk-btn" data-a="veDoiMk">🔑 Đổi mật khẩu</button><button class="mk-btn" data-a="dangXuat">Đăng xuất</button></div></div>
-      <nav class="mk-sub" id="mk-sub">${tabs().map(([k, l]) => `<button data-a="tab" data-k="${k}"${k === S.tab ? ' class="on"' : ''}>${l}<span class="mk-bdg" id="mk-b-${k}"></span></button>`).join('')}</nav><div id="mk-nd"></div>`;
+      <div class="mk-sub" id="mk-sub">${tabs().map(([k, l]) => `<button data-a="tab" data-k="${k}"${k === S.tab ? ' class="on"' : ''}>${l}<span class="mk-bdg" id="mk-b-${k}"></span></button>`).join('')}</div><div id="mk-nd"></div>`;
   }
   const $ = id => document.getElementById(id);
   function chuyenTab(k) {
@@ -2319,6 +2359,9 @@ window.MKT_URL = "https://script.google.com/macros/s/AKfycbz3nygb0xU0mrrmRsp57zP
     tab: b => { S.tamHtml = ''; nho('dbl-mkt-last', b.dataset.k); history.replaceState(null, '', '#mkt/' + b.dataset.k); chuyenTab(b.dataset.k); },
     eye: b => { const i = b.parentNode.querySelector('input'); const hien = i.type === 'password'; i.type = hien ? 'text' : 'password'; b.textContent = hien ? '🙈' : '👁'; b.classList.toggle('on', hien); },
     chepTam: async b => { try { await navigator.clipboard.writeText(b.dataset.pw); flash('Đã sao chép mật khẩu tạm', true); } catch (e) { const i = b.parentNode.querySelector('input'); i.type = 'text'; i.select(); flash('Chọn và sao chép thủ công (Ctrl+C)', true); } },
+    avMenu: () => { const p = $('mk-avm'); p.style.display = p.style.display === 'none' ? '' : 'none'; },
+    avDoi: b => { const m = $('mk-avm'); if (m) m.style.display = 'none'; S.avTarget = b.dataset.u; $('mk-avf').value = ''; $('mk-avf').click(); },
+    avXoa: async b => { const m = $('mk-avm'); if (m) m.style.display = 'none'; if (!confirm('Xóa ảnh đại diện của ' + tenCua(b.dataset.u) + '?')) return; try { await api('avSet', { user: b.dataset.u, xoa: true }); delete S.av[b.dataset.u]; nho('dbl-mkt-av', JSON.stringify(S.av)); await lamMoiNguoi(); flash('Đã xóa ảnh', true); if (S.tab === 'tk') chuyenTab('tk'); else avCapNhatDom(); } catch (e) { flash(e.message, false); } },
     veKhung: () => { veKhung(); chuyenTab(S.tab); },
     veDoiMk: () => veDoiMk(false),
     dangXuat: async () => { try { await api('logout'); } catch (e) {} dangXuatLocal(''); },
@@ -2362,6 +2405,7 @@ window.MKT_URL = "https://script.google.com/macros/s/AKfycbz3nygb0xU0mrrmRsp57zP
   function onClick(e) { const b = e.target.closest('[data-a]'); if (!b || !S.root.contains(b)) return; if (b.tagName === 'FORM') return; const f = ACT[b.dataset.a]; if (f) { e.preventDefault(); Promise.resolve(f(b)).catch(() => {}); } }
   function onChange(e) {
     const t = e.target;
+    if (t.id === 'mk-avf') { const f = t.files[0]; if (f) avLuu(S.avTarget || S.me.user, f); t.value = ''; return; }
     if (t.id === 'mk-file') { const f = t.files[0]; if (f) chatGui(f); t.value = ''; }
     if (t.matches('.mk-td')) { const id = Number(t.dataset.id); lam(null, () => api('shootProg', { id, tienDo: t.value, link: '' }), 'Đã cập nhật').then(() => chuyenTab('quay')).catch(() => chuyenTab('quay')); }
     if (t.id === 'mk-loai') dienFormPhieu();
@@ -2435,7 +2479,7 @@ window.MKT_URL = "https://script.google.com/macros/s/AKfycbz3nygb0xU0mrrmRsp57zP
   function chatVe(cuoi) {
     const ds = $('mk-ds'); if (!ds) return; const gan = ds.scrollHeight - ds.scrollTop - ds.clientHeight < 80;
     const ten = u => (S.nguoi.find(n => n.user === u) || {}).ten || u;
-    ds.innerHTML = S.chatTin.length ? S.chatTin.map(x => `<div class="mk-tn ${x.user === S.me.user ? 'me' : ''}">${linkify(x.text)}${x.flink ? `${x.text ? '<br>' : ''}📎 <a href="${esc(x.flink)}" target="_blank" rel="noopener">${esc(x.fname || 'file')}</a>` : ''}<div class="t">${esc(x.user === S.me.user ? 'Tôi' : ten(x.user))} · ${gio(x.time)}</div></div>`).join('') : '<p class="mk-n">Chưa có tin nào. Nhắn câu đầu tiên ở ô bên dưới.</p>';
+    ds.innerHTML = S.chatTin.length ? S.chatTin.map(x => `<div class="mk-mr ${x.user === S.me.user ? 'me' : ''}">${avHtml(x.user, 30)}<div class="mk-tn ${x.user === S.me.user ? 'me' : ''}">${linkify(x.text)}${x.flink ? `${x.text ? '<br>' : ''}📎 <a href="${esc(x.flink)}" target="_blank" rel="noopener">${esc(x.fname || 'file')}</a>` : ''}<div class="t">${esc(x.user === S.me.user ? 'Tôi' : ten(x.user))} · ${gio(x.time)}</div></div></div>`).join('') : '<p class="mk-n">Chưa có tin nào. Nhắn câu đầu tiên ở ô bên dưới.</p>';
     if (cuoi || gan) ds.scrollTop = ds.scrollHeight;
   }
   async function chatGui(file) {
@@ -2466,7 +2510,7 @@ window.MKT_URL = "https://script.google.com/macros/s/AKfycbz3nygb0xU0mrrmRsp57zP
     $('mk-nd').innerHTML = `<div class="mk-card"><h3>Lịch làm việc ${dm(w)} – ${dm(addD(w, 6))} <span class="r"><button class="mk-btn s" data-a="wkLich" data-n="-7">◀ Tuần trước</button><button class="mk-btn s" data-a="wkLich" data-n="7">Tuần sau ▶</button></span></h3>
       <p class="mk-n"><b>Hòa Lương, Quang Huy</b>: cố định T2–T7 8:30–17:30 (tự điền). <b>Thành Long</b> (part-time): tự đăng ký khung giờ từng ngày trước 17:00 thứ 7 cho tuần sau. Nghỉ / đổi giờ → gửi <b>phiếu yêu cầu</b>.</p>
       <div class="mk-wrap"><table class="mk-lich"><tr><th>Nhân sự</th>${r.days.map(d => `<th>${thu(d)}<br>${dm(d)}</th>`).join('')}<th>Tổng giờ</th></tr>
-      ${r.rows.map(x => `<tr><td><b>${esc(x.ten)}</b><br><span class="mk-n">${x.loai === 'cố định' ? 'Cố định' : 'Part-time · tự đăng ký'}</span></td>${x.cells.map(c => `<td>${caHtml(c)}</td>`).join('')}<td><b>${x.tong}h</b></td></tr>`).join('')}</table></div>
+      ${r.rows.map(x => `<tr><td>${avTen(x.user, 24)}<br><span class="mk-n">${x.loai === 'cố định' ? 'Cố định' : 'Part-time · tự đăng ký'}</span></td>${x.cells.map(c => `<td>${caHtml(c)}</td>`).join('')}<td><b>${x.tong}h</b></td></tr>`).join('')}</table></div>
       <p class="mk-n">Giờ tính theo khung đã ghi (chưa trừ nghỉ trưa). Ô tím = đã đổi theo phiếu được duyệt. ${m.vai !== 'admin' ? '<button class="mk-btn s" data-a="tab" data-k="phieu">Gửi phiếu nghỉ / đổi lịch</button>' : ''}</p></div>${reg}`;
     if (dk && !r.khoa) tongDK();
   };
@@ -2490,7 +2534,7 @@ window.MKT_URL = "https://script.google.com/macros/s/AKfycbz3nygb0xU0mrrmRsp57zP
   function pCard(x) {
     const ten = (S.nguoi.find(n => n.user === x.user) || {}).ten || x.user, ref = 'phieu:' + x.id;
     const k = x.status === 'Đã duyệt' ? 'ok' : x.status === 'Từ chối' ? 'r' : x.status === 'Đã hủy' ? 'n' : 'w';
-    return `<div class="mk-item"><div class="t"><b>#${String(x.id).padStart(3, '0')} · ${esc(ten)} · ${esc(x.type)}</b>${chip(x.status === 'Chờ duyệt' ? (x.user === 'hoaluong' ? 'Chờ anh duyệt' : 'Chờ Hòa duyệt') : x.status, k)}</div>
+    return `<div class="mk-item"><div class="t">${avHtml(x.user, 28)}<b>#${String(x.id).padStart(3, '0')} · ${esc(ten)} · ${esc(x.type)}</b>${chip(x.status === 'Chờ duyệt' ? (x.user === 'hoaluong' ? 'Chờ anh duyệt' : 'Chờ Hòa duyệt') : x.status, k)}</div>
       <div style="margin:6px 0">${noiDungPhieu(x)}</div>${x.reason ? `<div class="mk-n" style="margin:2px 0">Lý do: ${esc(x.reason)}</div>` : ''}
       ${x.byAt ? `<div class="mk-n" style="margin:2px 0">${esc(x.status)} bởi ${esc((S.nguoi.find(n => n.user === x.by) || {}).ten || x.by)} · ${gio(x.byAt)}${x.note ? ' – ' + esc(x.note) : ''}</div>` : `<div class="mk-n" style="margin:2px 0">Gửi ${gio(x.created)}</div>`}
       <div class="mk-row">${x.duyet ? `<button class="mk-btn g s" data-a="duyet" data-ok="1" data-id="${x.id}">✓ Duyệt</button><button class="mk-btn s" data-a="duyet" data-ok="0" data-id="${x.id}">Từ chối</button>` : ''}${x.huy ? `<button class="mk-btn s" data-a="huyPhieu" data-id="${x.id}">Hủy phiếu</button>` : ''}<button class="mk-btn s" data-a="cmt" data-ref="${ref}">💬 Bình luận</button></div><div data-cb="${ref}"></div></div>`;
@@ -2517,7 +2561,7 @@ window.MKT_URL = "https://script.google.com/macros/s/AKfycbz3nygb0xU0mrrmRsp57zP
     const box = document.querySelector(`[data-cb="${ref}"]`); if (!box) return; S.moPhieu[ref] = true; box.innerHTML = '<div class="mk-cm">Đang tải…</div>';
     try {
       const r = await api('cmtList', { ref });
-      box.innerHTML = `<div class="mk-cm">${r.cmt.length ? r.cmt.map(c => `<p><b>${esc((S.nguoi.find(n => n.user === c.user) || {}).ten || c.user)}</b> <span class="mk-n">${gio(c.time)}</span><br>${linkify(c.text)}</p>`).join('') : '<p class="mk-n">Chưa có bình luận.</p>'}<form data-f="cmt" data-ref="${esc(ref)}" class="mk-row"><input name="text" style="flex:1;min-width:140px" placeholder="Viết bình luận… (@tên để gọi)" autocomplete="off"><button class="mk-btn p s" type="submit">Gửi</button></form></div>`;
+      box.innerHTML = `<div class="mk-cm">${r.cmt.length ? r.cmt.map(c => `<p>${avTen(c.user, 22)} <span class="mk-n">${gio(c.time)}</span><br>${linkify(c.text)}</p>`).join('') : '<p class="mk-n">Chưa có bình luận.</p>'}<form data-f="cmt" data-ref="${esc(ref)}" class="mk-row"><input name="text" style="flex:1;min-width:140px" placeholder="Viết bình luận… (@tên để gọi)" autocomplete="off"><button class="mk-btn p s" type="submit">Gửi</button></form></div>`;
     } catch (e) { box.innerHTML = `<div class="mk-cm mk-err">${esc(e.message)}</div>`; }
   }
 
@@ -2613,7 +2657,7 @@ window.MKT_URL = "https://script.google.com/macros/s/AKfycbz3nygb0xU0mrrmRsp57zP
     if (S.me.vai !== 'admin') { $('mk-nd').innerHTML = '<div class="mk-card mk-err">Chỉ anh được vào mục này.</div>'; return; }
     const r = await api('userList'), tam = S.tamHtml || ''; S.tamHtml = '';
     $('mk-nd').innerHTML = `<div id="mk-tam">${tam}</div><div class="mk-card"><h3>👥 Tài khoản <span class="r mk-n" style="font-weight:400">Chỉ anh thấy mục này</span></h3><div class="mk-wrap"><table><tr><th>Họ tên</th><th>Tên đăng nhập</th><th>Vai trò</th><th>Lần cuối vào</th><th>Trạng thái</th><th></th></tr>
-      ${r.users.map(u => `<tr><td>${esc(u.ten)}</td><td>${esc(u.user)}</td><td>${esc(VAI[u.vai])}</td><td>${u.lastLogin ? gio(u.lastLogin) : '–'}</td><td>${u.locked ? chip('Đã khóa', 'r') : u.tam ? chip('Khóa tạm (sai MK)', 'w') : u.must ? chip('Chưa đổi MK tạm', 'w') : chip('Hoạt động', 'ok')}</td><td>${u.vai === 'admin' ? '' : `<button class="mk-btn s" data-a="tkReset" data-u="${esc(u.user)}">Cấp lại MK</button> <button class="mk-btn s" data-a="tkKhoa" data-u="${esc(u.user)}" data-k="${u.locked ? 0 : 1}">${u.locked ? 'Mở khóa' : 'Khóa'}</button>`}</td></tr>`).join('')}</table></div>
+      ${r.users.map(u => `<tr><td>${avTen(u.user, 28)}</td><td>${esc(u.user)}</td><td>${esc(VAI[u.vai])}</td><td>${u.lastLogin ? gio(u.lastLogin) : '–'}</td><td>${u.locked ? chip('Đã khóa', 'r') : u.tam ? chip('Khóa tạm (sai MK)', 'w') : u.must ? chip('Chưa đổi MK tạm', 'w') : chip('Hoạt động', 'ok')}</td><td><button class="mk-btn s" data-a="avDoi" data-u="${esc(u.user)}">Đổi ảnh</button>${u.av ? ` <button class="mk-btn s" data-a="avXoa" data-u="${esc(u.user)}">Xóa ảnh</button>` : ''} ${u.vai === 'admin' ? '' : `<button class="mk-btn s" data-a="tkReset" data-u="${esc(u.user)}">Cấp lại MK</button> <button class="mk-btn s" data-a="tkKhoa" data-u="${esc(u.user)}" data-k="${u.locked ? 0 : 1}">${u.locked ? 'Mở khóa' : 'Khóa'}</button>`}</td></tr>`).join('')}</table></div>
       <p class="mk-n">Nhân sự nghỉ việc → bấm Khóa (giữ lịch sử, không xóa). Sai 5 lần → tự khóa 15 phút.</p>
       <form data-f="tkAdd" class="mk-row"><input name="user" placeholder="tên đăng nhập" required style="width:150px" autocapitalize="none"><input name="ten" placeholder="Họ tên" required style="width:150px"><select name="vai"><option value="content">Nội dung</option><option value="crew">Quay dựng (part-time)</option><option value="lead">Trưởng nhóm</option></select><button class="mk-btn p" type="submit">+ Thêm tài khoản</button><span class="mk-err" id="mk-tke"></span></form></div>
       <div class="mk-card"><h3>🛡️ Phân quyền (kiểm tra ở máy chủ)</h3><div class="mk-wrap"><table style="font-size:13px"><tr><th>Mục</th><th>Anh</th><th>Hòa Lương</th><th>Quang Huy</th><th>Thành Long</th></tr>
