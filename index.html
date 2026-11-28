@@ -2160,7 +2160,7 @@ window.MKT_URL = "https://script.google.com/macros/s/AKfycbz3nygb0xU0mrrmRsp57zP
   const TIEN_DO = ['Chưa quay', 'Đã quay', 'Đang dựng', 'Chờ duyệt', 'Đã đăng'];
   const LOAI_PHIEU = ['Đổi ca', 'Nghỉ phép', 'Dời lịch quay', 'Đề xuất ngân sách/đạo cụ', 'Khác'];
   const THU = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-  const SAP_CO = ['Kế hoạch nội dung', 'Web & Sàn', 'Tồn & đẩy tồn', 'Trợ lý AI', 'Báo cáo tuần', 'KPI'];
+  const SAP_CO = ['Kế hoạch nội dung', 'Báo cáo tuần', 'KPI cá nhân'];
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const DAY = 864e5, vnNow = () => new Date(Date.now() + 7 * 36e5), ymd = d => d.toISOString().slice(0, 10);
   const pY = s => { const a = s.split('-').map(Number); return new Date(Date.UTC(a[0], a[1] - 1, a[2])); };
@@ -2259,6 +2259,10 @@ window.MKT_URL = "https://script.google.com/macros/s/AKfycbz3nygb0xU0mrrmRsp57zP
 .mk-mr{display:flex;gap:6px;align-items:flex-end;max-width:92%}.mk-mr.me{align-self:flex-end;flex-direction:row-reverse}.mk-mr:not(.me){align-self:flex-start}.mk-mr .mk-tn{max-width:none;min-width:0}
 .mk-nm{display:inline-flex;align-items:center;gap:6px;vertical-align:middle}.mk-me{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line,#E2E8F0);background:var(--card,#fff);color:var(--ink,#0F172A);border-radius:99px;padding:3px 12px 3px 3px;cursor:pointer;font:600 13px system-ui,sans-serif;position:relative}
 .mk-pw{position:relative}
+.mk-drop{border:2px dashed var(--line,#CBD5E1);border-radius:12px;padding:22px 12px;text-align:center;color:var(--muted,#64748B);cursor:pointer}.mk-drop.on{border-color:var(--mk-acc);background:rgba(220,38,38,.07);color:var(--ink,#0F172A)}
+.mk-bar{height:8px;border-radius:99px;background:var(--line,#E2E8F0);overflow:hidden;margin-top:6px}.mk-bar i{display:block;height:100%;background:var(--mk-acc)}
+.mk-kc{display:inline-flex;gap:4px;align-items:center;border:1px solid var(--line,#E2E8F0);border-radius:99px;padding:3px 4px 3px 10px;margin:0 6px 6px 0;font:600 12px ui-monospace,Consolas,monospace}.mk-kc button{border:0;background:rgba(220,38,38,.14);color:#DC2626;border-radius:50%;width:20px;height:20px;cursor:pointer;line-height:1}
+.mk-act{border:1px solid #B45309;background:rgba(217,119,6,.1);border-radius:10px;padding:8px 10px;margin-top:6px}
 .mk-w100{width:100%}.mk-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .mk-err{color:#DC2626;font-size:13px;min-height:18px}.mk-ok2{color:#15803D;font-size:13px}
 .mk-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -2326,6 +2330,9 @@ window.MKT_URL = "https://script.google.com/macros/s/AKfycbz3nygb0xU0mrrmRsp57zP
   }
   function tabs() {
     const t = [['tq', 'Tổng quan'], ['td', '💬 Trao đổi'], ['lich', 'Lịch làm việc'], ['phieu', 'Phiếu yêu cầu'], ['quay', 'Lịch quay SP']];
+    if (S.me.vai === 'lead' || S.me.vai === 'admin') t.push(['ton', '📦 Tồn & đẩy tồn']);
+    t.push(['san', 'Web & Sàn']);
+    if (S.me.vai === 'lead' || S.me.vai === 'admin') t.push(['ai', '🤖 Trợ lý AI']);
     if (S.me.vai === 'admin') t.push(['tk', '⚙️ Tài khoản']);
     t.push(['sapco', 'Sắp có']); return t;
   }
@@ -2349,10 +2356,11 @@ window.MKT_URL = "https://script.google.com/macros/s/AKfycbz3nygb0xU0mrrmRsp57zP
       const r = await api('ping'); const nb = $('mk-nb'); if (nb) nb.textContent = r.noti || '';
       const bt = $('mk-b-td'); if (bt) bt.textContent = S.tab !== 'td' && r.chat > S.chatId && S.chatId ? '•' : '';
       if (r.ver !== S.ver) { const cu = S.ver; S.ver = r.ver; if (cu && ['td'].indexOf(S.tab) < 0 && !S.dangNhap) refreshTab(); }
+      if (S.tab === 'ton' && S.tonDang) refreshTab();
       if (S.tab === 'td' && r.chat > S.chatId) chatTai(false);
     } catch (e) {}
   }
-  function refreshTab() { if (['tq', 'lich', 'phieu', 'quay', 'tk'].indexOf(S.tab) >= 0 && !document.activeElement.closest('form, #mk-nd input, #mk-nd textarea, #mk-nd select')) { (TAB[S.tab])().catch(() => {}); } }
+  function refreshTab() { if (S.tab === 'ai') { aiTai(false).catch(() => {}); return; } if (['tq', 'lich', 'phieu', 'quay', 'tk', 'ton', 'san'].indexOf(S.tab) >= 0 && !document.activeElement.closest('form, #mk-nd input, #mk-nd textarea, #mk-nd select')) { (TAB[S.tab])().catch(() => {}); } }
 
   /* ---------- hành động bấm ---------- */
   const ACT = {
@@ -2393,6 +2401,18 @@ window.MKT_URL = "https://script.google.com/macros/s/AKfycbz3nygb0xU0mrrmRsp57zP
     chatGui: () => chatGui(), chatKem: () => $('mk-file').click(),
     nhac: b => { const t = $('mk-nhap'); t.value += (t.value && !/\s$/.test(t.value) ? ' ' : '') + '@' + b.dataset.u + ' '; t.focus(); },
     // tài khoản
+    tonChon: () => $('mk-tonf').click(),
+    tonHuy: async b => { if (!confirm('Hủy lần đẩy này?')) return; await lam(b, () => api('tonHuy', { id: Number(b.dataset.id) }), 'Đã hủy'); chuyenTab('ton'); },
+    tonQ: async b => { await lam(b, () => api('tonQuyet', b.dataset.ma ? { id: Number(b.dataset.id), ma: b.dataset.ma, quyet: b.dataset.q } : { id: Number(b.dataset.id), tatca: true, quyet: b.dataset.q }), b.dataset.q === 'dung' ? 'Đã chọn: đúng, đẩy' : 'Đã chọn: sai, giữ cũ'); chuyenTab('ton'); },
+    khoaThem: async b => { const i = $('mk-khoa-in'), v = i.value.trim().toUpperCase().replace(/\s/g, ''); if (!/^[A-Z0-9][A-Z0-9._-]{2,39}$/.test(v)) { flash('Mã không hợp lệ (vd P-AYPW051-4V)', false); return; } const L = S.ton.khoa.map(x => ({ ma: x.ma, ghi: x.ghi, by: x.by })); if (L.some(x => x.ma === v)) { flash('Mã đã có', false); return; } L.push({ ma: v, ghi: 'thêm trên app' }); await lam(b, () => api('tonKhoaSet', { list: L }), 'Đã thêm mã khóa'); chuyenTab('ton'); },
+    khoaBo: async b => { if (!confirm('Bỏ mã ' + b.dataset.ma + ' khỏi danh sách khóa tồn 0? Lần đẩy sau mã này sẽ lấy tồn theo file.')) return; const L = S.ton.khoa.filter(x => x.ma !== b.dataset.ma).map(x => ({ ma: x.ma, ghi: x.ghi, by: x.by })); await lam(b, () => api('tonKhoaSet', { list: L }), 'Đã bỏ mã khóa'); chuyenTab('ton'); },
+    tonMau: () => $('mk-maf').click(),
+    cheDo: async b => { const that = S.ton.che !== 'that'; if (!confirm(that ? 'BẬT chế độ THẬT: từ lần đẩy sau, tác vụ trên máy sẽ GHI tồn thật lên web, TikTok kho Mono và Shopee. Anh đã xem kết quả chạy thử rồi chứ?' : 'Quay về chế độ THỬ (chỉ kiểm tra, không ghi lên kênh)?')) return; await lam(b, () => api('tonCheDo', { che: that ? 'that' : 'thu' }), that ? 'Đã bật chế độ Thật' : 'Đã về chế độ Thử'); chuyenTab('ton'); },
+    viecThem: async b => { const t = $('mk-viec-in').value.trim(); if (!t) return; await lam(b, () => api('sanViecAdd', { text: t, kenh: $('mk-viec-kenh').value }), 'Đã thêm việc'); chuyenTab('san'); },
+    viecXong: async b => { await lam(b, () => api('sanViecXong', { id: Number(b.dataset.id), mo: b.dataset.mo === '1' }), 'Đã cập nhật'); chuyenTab('san'); },
+    aiGui: () => aiGui(), aiKem: () => $('mk-aif').click(),
+    aiNhanh: b => { const t = b.dataset.t, ta = $('mk-ai-nhap'); if (b.dataset.gui === '1') { ta.value = t; aiGui(); } else { ta.value = t; ta.focus(); ta.setSelectionRange(t.length, t.length); } },
+    aiDuyet: async b => { await lam(b, () => api('aiDuyet', { id: Number(b.dataset.id), ok: b.dataset.ok === '1' }), b.dataset.ok === '1' ? 'Đã duyệt – AI sẽ làm ở lượt kế tiếp' : 'Đã từ chối'); await aiTai(false); },
     tkReset: async b => { if (!confirm('Cấp lại mật khẩu tạm cho ' + b.dataset.u + '? Mật khẩu cũ sẽ mất, người đó bị đăng xuất.')) return; const r = await api('userReset', { user: b.dataset.u }); S.tamHtml = tamHtml(b.dataset.u, r.tam); chuyenTab('tk'); },
     tkKhoa: async b => { const khoa = b.dataset.k === '1'; if (!confirm((khoa ? 'Khóa' : 'Mở khóa') + ' tài khoản ' + b.dataset.u + '?')) return; await api('userLock', { user: b.dataset.u, lock: khoa }); chuyenTab('tk'); },
     tkLog: async () => { const r = await api('logList'); $('mk-log').innerHTML = '<table><tr><th>Lúc</th><th>Ai</th><th>Việc</th><th>Chi tiết</th></tr>' + r.log.map(x => `<tr><td>${gio(x.time)}</td><td>${esc(x.user)}</td><td>${esc(x.event)}</td><td>${esc(x.detail)}</td></tr>`).join('') + '</table>'; }
@@ -2405,6 +2425,9 @@ window.MKT_URL = "https://script.google.com/macros/s/AKfycbz3nygb0xU0mrrmRsp57zP
   function onClick(e) { const b = e.target.closest('[data-a]'); if (!b || !S.root.contains(b)) return; if (b.tagName === 'FORM') return; const f = ACT[b.dataset.a]; if (f) { e.preventDefault(); Promise.resolve(f(b)).catch(() => {}); } }
   function onChange(e) {
     const t = e.target;
+    if (t.id === 'mk-tonf') { const f = t.files[0]; t.value = ''; if (f) tonUp(f); return; }
+    if (t.id === 'mk-maf') { const f = t.files[0]; t.value = ''; if (f) tonMauUp(f); return; }
+    if (t.id === 'mk-aif') { const f = t.files[0]; t.value = ''; if (f) aiGui(f); return; }
     if (t.id === 'mk-avf') { const f = t.files[0]; if (f) avLuu(S.avTarget || S.me.user, f); t.value = ''; return; }
     if (t.id === 'mk-file') { const f = t.files[0]; if (f) chatGui(f); t.value = ''; }
     if (t.matches('.mk-td')) { const id = Number(t.dataset.id); lam(null, () => api('shootProg', { id, tienDo: t.value, link: '' }), 'Đã cập nhật').then(() => chuyenTab('quay')).catch(() => chuyenTab('quay')); }
@@ -2430,7 +2453,7 @@ window.MKT_URL = "https://script.google.com/macros/s/AKfycbz3nygb0xU0mrrmRsp57zP
 
   /* ---------- các tab ---------- */
   const TAB = {};
-  TAB.sapco = async () => { $('mk-nd').innerHTML = `<div class="mk-card"><h3>Sắp có (đợt 2–3)</h3><ul>${SAP_CO.map(x => `<li>${esc(x)}</li>`).join('')}</ul><p class="mk-n">Đợt 1 gồm: tài khoản, lịch làm việc, phiếu yêu cầu, lịch quay SP, trao đổi.</p></div>`; };
+  TAB.sapco = async () => { $('mk-nd').innerHTML = `<div class="mk-card"><h3>Sắp có (đợt 2–3)</h3><ul>${SAP_CO.map(x => `<li>${esc(x)}</li>`).join('')}</ul><p class="mk-n">Đã có: tài khoản, lịch làm việc, phiếu yêu cầu, lịch quay SP, trao đổi, Web & Sàn, Tồn & đẩy tồn, Trợ lý AI.</p></div>`; };
 
   TAB.tq = async () => {
     const hn = ymd(vnNow()), w = monOf(hn), w2 = addD(w, 7), m = S.me;
@@ -2651,6 +2674,111 @@ window.MKT_URL = "https://script.google.com/macros/s/AKfycbz3nygb0xU0mrrmRsp57zP
     return `<h3 style="margin-top:14px">⭐ Hàng tồn ưu tiên số 1 (anh giao 23/11)</h3><div class="mk-wrap"><table><tr><th>Mã</th><th>Sản phẩm</th><th>Tồn lúc lập</th><th>Tồn hiện tại</th><th>Cách làm</th></tr>${g.uu.map(x => `<tr><td>${esc(x.ma)}</td><td>${esc(x.ten)}${x.mau ? ' – ' + esc(x.mau) : ''}<div class="mk-n" style="margin:0">Size: ${esc(x.size || '—')}</div></td><td>${so(x.tonKe)}</td><td>${x.ton ? so(x.ton[0] + x.ton[1]) + '<div class="mk-n" style="margin:0">AK ' + so(x.ton[0]) + ' · ĐA ' + so(x.ton[1]) + '</div>' : '<span class="mk-n">chưa có trong dữ liệu tồn</span>'}</td><td>${esc(x.cach)}</td></tr>`).join('')}</table></div>`;
   }
   window.__mktGy = () => { S.gyHet = !S.gyHet; veGoiY(); };
+
+
+  /* ============ ĐỢT 2 (28/11/2026) ============ */
+  const docB64 = async file => { const b = new Uint8Array(await file.arrayBuffer()); let x = ''; for (let i = 0; i < b.length; i += 32768) x += String.fromCharCode.apply(null, b.subarray(i, i + 32768)); return btoa(x); };
+  const stK = t => /^Xong/.test(t || '') ? 'ok' : /Lỗi|Hủy/.test(t || '') ? 'r' : /Thử/.test(t || '') ? 'b' : /Chờ|Cần/.test(t || '') ? 'w' : 'b';
+  const dmy = iso => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }); };
+
+  /* ----- Tồn & đẩy tồn (chỉ Hòa + anh) ----- */
+  async function tonUp(file) {
+    if (file.size > 10 * 1024 * 1024) { flash('File quá 10MB', false); return; }
+    const tt = $('mk-ton-tt'); if (tt) tt.textContent = 'Đang tải file lên…';
+    try { await api('tonUp', { file: { name: file.name, b64: await docB64(file) } }); flash('Đã nhận file – máy sẽ kiểm tra trong vài phút', true); chuyenTab('ton'); } catch (e) { flash(e.message, false); if (tt) tt.textContent = e.message; }
+  }
+  async function tonMauUp(file) { try { await api('tonMauUp', { file: { name: file.name, b64: await docB64(file) } }); flash('Đã lưu file mẫu Shopee', true); chuyenTab('ton'); } catch (e) { flash(e.message, false); } }
+  TAB.ton = async () => {
+    const r = await api('tonDs'); S.ton = r; const adm = S.me.vai === 'admin', cur = r.jobs[0];
+    S.tonDang = !!cur && ['Chờ kiểm', 'Cần xác nhận', 'Chờ đẩy', 'Đang đẩy'].indexOf(cur.status) >= 0;
+    const KENH = [['web', 'Web liningvietnam.com.vn'], ['tiktok', 'TikTok Li-Ning Đông Anh – kho Mono'], ['shopee', 'Shopee'], ['mixsport', 'Mixsport']];
+    const chuaMau = j => j.kenh && j.kenh.shopee && /Chờ file mẫu/.test(j.kenh.shopee.st || '');
+    const jobHtml = j => `<div class="mk-card" style="border-color:${S.tonDang && j.id === cur.id ? '#B45309' : 'var(--line)'}"><h3>#${j.id} · ${esc(j.fname)} ${chip(j.status, stK(j.status))}<span class="r mk-n" style="font-weight:400">Up ${dmy(j.time)} · ${esc(tenCua(j.user))}</span></h3>
+      ${j.ghi ? `<p class="mk-n" style="margin:2px 0">${esc(j.ghi)}</p>` : ''}
+      <div class="mk-wrap"><table><tr><th>Kiểm tra tự động</th><th>Kết quả</th></tr>${(j.kiem || []).map(k => `<tr><td>${esc(k.ten)}</td><td>${k.ok ? chip('Đạt', 'ok') : chip('Cần xem', 'w')} <span class="mk-n">${esc(k.ghi || '')}</span></td></tr>`).join('') || '<tr><td colspan="2" class="mk-n">Đang chờ máy kiểm tra (tối đa 30 phút, giờ hành chính T2–T7).</td></tr>'}</table></div>
+      ${j.status === 'Cần xác nhận' ? confirmHtml(j) : ''}
+      ${Object.keys(j.kenh || {}).length ? `<div class="mk-wrap" style="margin-top:8px"><table><tr><th>Kênh</th><th>Trạng thái</th><th>Mã đổi</th><th>Về 0</th><th>Kiểm tra lại</th><th>Xong lúc</th></tr>${KENH.map(([k, n]) => { const x = j.kenh[k]; if (!x) return ''; return `<tr><td>${n}</td><td>${chip(x.st || '–', stK(x.st))}</td><td>${x.doi != null ? so(x.doi) : '–'}</td><td>${x.ve0 != null ? so(x.ve0) : '–'}</td><td>${esc(x.kiemLai || '–')}</td><td>${x.xongLuc ? dmy(x.xongLuc) : '–'}</td></tr>`; }).join('')}</table></div>` : ''}
+      ${chuaMau(j) ? '<p class="mk-n"><b>Shopee cần mẫu tải tay</b> – xem hướng dẫn và up file mẫu (.zip) ở khung bên dưới; tác vụ sẽ dùng file đó ở lượt kế tiếp.</p>' : ''}
+      ${['Chờ kiểm', 'Cần xác nhận', 'Chờ đẩy'].indexOf(j.status) >= 0 ? `<p><button class="mk-btn s" data-a="tonHuy" data-id="${j.id}">Hủy lần đẩy này</button></p>` : ''}</div>`;
+    const confirmHtml = j => { const bt = j.bt || [], con = bt.filter(x => !x.quyet).length; return `<div class="mk-act"><b>⚠️ Cần Hòa xác nhận trước khi đẩy (${con} mục chưa quyết)</b>
+      <div class="mk-wrap"><table><tr><th>Mã</th><th>Tồn cũ</th><th>Tồn file mới</th><th>Thay đổi</th><th></th></tr>${bt.map(x => `<tr><td>${esc(x.ma)}</td><td>${x.loai === 'ngay' ? '–' : so(x.cu)}</td><td>${x.loai === 'ngay' ? '–' : so(x.moi)}</td><td style="color:#DC2626">${esc(x.ky || '')}</td><td>${x.quyet ? chip(x.quyet === 'dung' ? 'Đúng, đẩy' : 'Sai, giữ cũ', x.quyet === 'dung' ? 'ok' : 'b') : `<button class="mk-btn g s" data-a="tonQ" data-id="${j.id}" data-ma="${esc(x.ma)}" data-q="dung">Đúng, đẩy</button> <button class="mk-btn s" data-a="tonQ" data-id="${j.id}" data-ma="${esc(x.ma)}" data-q="sai">Sai, giữ cũ</button>`}</td></tr>`).join('')}</table></div>
+      ${con > 1 ? `<p class="mk-row"><button class="mk-btn g s" data-a="tonQ" data-id="${j.id}" data-q="dung">Tất cả đúng, đẩy</button><button class="mk-btn s" data-a="tonQ" data-id="${j.id}" data-q="sai">Tất cả sai, giữ cũ</button></p>` : ''}
+      <p class="mk-n">“Sai, giữ cũ” = mã đó KHÔNG bị đổi tồn ở web, TikTok, Shopee lần này.</p></div>`; };
+    $('mk-nd').innerHTML = `<div class="mk-card"><h3>📦 Up file tổng hợp tồn <span class="r">${chip(r.che === 'that' ? 'Chế độ THẬT – ghi lên kênh' : 'Chế độ THỬ – chưa ghi lên kênh', r.che === 'that' ? 'r' : 'b')}${adm ? `<button class="mk-btn s" data-a="cheDo">${r.che === 'that' ? 'Về chế độ Thử' : 'Bật chế độ Thật'}</button>` : ''}</span></h3>
+      <div class="mk-drop" id="mk-drop" data-a="tonChon">Kéo thả file <b>TỒN LI-NING dd.mm.yyyy.xlsx</b> vào đây hoặc bấm để chọn<br><span class="mk-n">Up xong máy tự kiểm tra, rồi đẩy tồn: Web → TikTok kho Mono → Shopee. Không cần nhắn ai.</span></div><input type="file" id="mk-tonf" accept=".xlsx" style="display:none"><div class="mk-n" id="mk-ton-tt"></div>
+      <p class="mk-n">Kiểm tra tự động trước khi đẩy: đúng tên file · ngày trong tên file · đúng mẫu cột · mã tồn biến động bất thường (&gt;3 lần hoặc &gt;1.000 cái) sẽ <b>dừng chờ Hòa xác nhận</b>. Máy quét hàng đợi mỗi 30 phút, 8:30–17:30 thứ 2–thứ 7.${r.che !== 'that' ? ' <b>Đang ở chế độ THỬ</b>: máy chỉ kiểm tra và báo số mã sẽ đổi, chưa ghi gì lên kênh nào – anh bật chế độ Thật khi đã xem kết quả.' : ''}</p></div>
+      ${cur ? jobHtml(cur) : '<div class="mk-card"><p class="mk-n" style="margin:0">Chưa có lần đẩy nào.</p></div>'}
+      <div class="mk-card"><h3>🔒 Mã khóa tồn = 0 trên TikTok</h3><p class="mk-n">Mỗi lần đẩy tồn, các mã này luôn để 0 trên TikTok (kho Mono). Hòa tự thêm/bỏ.</p>
+        <div>${r.khoa.map(x => `<span class="mk-kc">${esc(x.ma)}<button data-a="khoaBo" data-ma="${esc(x.ma)}" title="Bỏ">✕</button></span>`).join('') || '<span class="mk-n">Chưa có mã nào.</span>'}</div>
+        <div class="mk-row"><input id="mk-khoa-in" placeholder="Mã SP, vd P-AYPW051-4V" autocapitalize="characters" style="flex:1;min-width:180px"><button class="mk-btn p" data-a="khoaThem">+ Thêm mã</button></div></div>
+      <div class="mk-card"><h3>📄 Mẫu tải tay của Shopee <span class="r mk-n" style="font-weight:400">${r.mau.ten ? 'Đã up: ' + esc(r.mau.ten) + ' · ' + dmy(r.mau.luc) + (r.mau.dung ? ' · đã dùng' : ' · chưa dùng') : 'Chưa có file mẫu'}</span></h3>
+        <p class="mk-n">Shopee không cho máy tự tải, nên cần người bấm tải 1 file: vào <b>Shopee Seller Centre → Sản phẩm → Cập nhật hàng loạt → Tải về</b>, chọn mẫu <b>“Thông tin Bán hàng”</b> → Tải về (file .zip tên dạng mass_update_sales_info_….zip) rồi up ở đây. Tác vụ sẽ dùng file này để dựng file tồn Shopee.</p>
+        <button class="mk-btn" data-a="tonMau">Chọn file mẫu .zip</button><input type="file" id="mk-maf" accept=".zip" style="display:none"></div>
+      <div class="mk-card"><h3>Lịch sử đẩy tồn</h3><div class="mk-wrap"><table><tr><th>File</th><th>Up lúc</th><th>Trạng thái</th><th>Web</th><th>TikTok</th><th>Shopee</th></tr>${r.jobs.map(j => `<tr><td>#${j.id} ${esc(j.fname)}</td><td>${dmy(j.time)}</td><td>${chip(j.status, stK(j.status))}</td>${['web', 'tiktok', 'shopee'].map(k => `<td>${j.kenh && j.kenh[k] ? esc(j.kenh[k].st) : '–'}</td>`).join('')}</tr>`).join('') || '<tr><td colspan="6" class="mk-n">Chưa có.</td></tr>'}</table></div></div>`;
+    const dz = $('mk-drop'); ['dragenter', 'dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('on'); })); ['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('on'); }));
+    dz.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) tonUp(f); });
+  };
+
+  /* ----- Web & Sàn ----- */
+  TAB.san = async () => {
+    const r = (await api('sanGet')).san, m = S.me, tong = m.vai === 'admin' || m.vai === 'lead';
+    if (!r) { $('mk-nd').innerHTML = '<div class="mk-card"><h3>Web & Sàn</h3><p class="mk-n">Chưa có số liệu (tự cập nhật mỗi sáng cùng báo cáo 07:25).</p></div>'; return; }
+    const pc = v => v == null ? '–' : (v > 0 ? '▲ ' : v < 0 ? '▼ ' : '') + Math.abs(v).toLocaleString('vi-VN') + '%', mau = v => v == null ? '' : v >= 0 ? '#15803D' : '#DC2626', tr = v => v == null ? '–' : Number(v).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + 'tr';
+    let h = `<p class="mk-n" style="margin:0 0 8px">${esc(r.ghiChu)} Cập nhật ${esc(r.at || '')}.</p>`;
+    if (tong) {
+      const th = r.thang;
+      h += `<div class="mk-card"><h3>Tháng ${th.thang} – cả công ty (chưa VAT)</h3><div class="mk-grid" style="margin:0"><div class="mk-k"><small>Thực tế đến nay</small><b>${tr(th.thuc)}</b></div><div class="mk-k"><small>Chỉ tiêu tháng</small><b>${tr(th.ct)}</b><small>đạt ${th.tyLe}%</small></div><div class="mk-k"><small>Tháng trước (T${th.thangTruoc ? th.thangTruoc.thang : ''})</small><b>${th.thangTruoc ? tr(th.thangTruoc.thuc) : '–'}</b></div></div><div class="mk-bar"><i style="width:${Math.min(100, th.tyLe)}%"></i></div><p class="mk-n">${esc(th.luuY || '')}</p></div>
+      <div class="mk-grid">${r.kenh.map(k => `<div class="mk-card" style="margin:0"><b>${esc(k.ten)}</b><div style="font-size:22px;font-weight:700;margin-top:4px">${tr(k.thang.thuc)}</div><small class="mk-n">tháng · ${k.thang.tyLe != null ? 'đạt ' + k.thang.tyLe + '% của ' + tr(k.thang.ct) : ''}</small><div class="mk-bar"><i style="width:${Math.min(100, k.thang.tyLe || 0)}%"></i></div>${k.soKyTruoc ? `<div class="mk-n" style="margin:6px 0 0">Tuần này ${tr(k.soKyTruoc.tuanNay)} · tuần trước ${tr(k.soKyTruoc.tuanTruoc)} <b style="color:${mau(k.soKyTruoc.pct)}">${pc(k.soKyTruoc.pct)}</b>${k.soKyTruoc.luuY ? '<br><small>' + esc(k.soKyTruoc.luuY) + '</small>' : ''}</div>` : ''}</div>`).join('')}</div>
+      <div class="mk-card"><h3>Doanh số theo tuần (T2–CN)</h3><div class="mk-wrap"><table><tr><th>Kênh</th>${r.kenh[0].tuan.map(t => `<th>${dm(t.tu)}–${dm(t.den)}${t.dayDu ? '' : '*'}</th>`).join('')}</tr>${r.kenh.map(k => `<tr><td>${esc(k.ten)}</td>${k.tuan.map(t => `<td>${tr(t.thuc)}</td>`).join('')}</tr>`).join('')}</table></div><p class="mk-n">* tuần chưa đủ 7 ngày. Đơn vị triệu đồng.</p></div>
+      <div class="mk-card"><h3>Chỉ tiêu tuần tháng 12 <span class="r mk-n" style="font-weight:400">đề xuất · mức sàn = ngưỡng cảnh báo</span></h3><div class="mk-wrap"><table><tr><th>Kênh</th><th>Phụ trách</th><th>Tháng</th><th>Mức sàn tháng</th>${['T1', 'T2', 'T3', 'T4', 'T5'].map(t => `<th>${t}<br><small>(sàn)</small></th>`).join('')}</tr>${r.tuanCT.map(k => `<tr><td>${esc(k.ten)}</td><td>${esc(k.phuTrach || '')}</td><td>${tr(k.thang)}</td><td>${tr(k.mucSan)}</td>${['T1', 'T2', 'T3', 'T4', 'T5'].map(t => `<td>${tr(k.tuan[t])}<br><small class="mk-n">${tr(k.tuanSan[t])}</small></td>`).join('')}</tr>`).join('')}</table></div><p class="mk-n">Tuần: T1 01–06/12 · T2 07–13/12 · T3 14–20/12 · T4 21–27/12 · T5 28–31/12. Dưới mức sàn của tuần = cảnh báo.</p></div>`;
+    }
+    const TK = Object.entries(r.tiktok || {});
+    if (TK.length) h += `<div class="mk-card"><h3>TikTok theo kênh ${tong ? '' : '– kênh của bạn'} <span class="r mk-n" style="font-weight:400">GMV tạo, mục tiêu tháng 12</span></h3><div class="mk-wrap"><table><tr><th>Kênh</th><th>Tỷ trọng T12</th><th>GMV tạo tháng</th><th>Giữ lại tháng</th>${['T1', 'T2', 'T3', 'T4', 'T5'].map(t => `<th>${t}</th>`).join('')}</tr>${TK.map(([, v]) => `<tr><td>${esc(v.ten)}</td><td>${v.tyTrongT12 != null ? v.tyTrongT12 + '%' : '–'}</td><td>${tr(v.gmvTaoThangTr)}</td><td>${tr(v.giuLaiThangTr)}</td>${['T1', 'T2', 'T3', 'T4', 'T5'].map(t => `<td>${tr((v.gmvTaoTuanTr || {})[t])}</td>`).join('')}</tr>`).join('')}</table></div><p class="mk-n">Số thực tế theo từng kênh TikTok: <b>cần nguồn</b> (đang nằm ở app TikTok Shop, chưa nối vào đây).</p></div>`;
+    for (const [k, v] of Object.entries(r.kpi || {})) {
+      if (!v || !v.nhom) continue;
+      const TEN = { doanhSo: 'Doanh số', chatLuongDon: 'Chất lượng đơn', live: 'LIVE', video: 'Video' };
+      h += `<div class="mk-card"><h3>KPI – ${esc(v.ten || k)}</h3>${v.phamVi ? `<p class="mk-n" style="margin:0 0 6px">${esc(v.phamVi)}</p>` : ''}` + Object.entries(v.nhom).map(([g, arr]) => !Array.isArray(arr) || !arr.length ? '' : `<b>${esc(TEN[g] || g)}</b><div class="mk-wrap"><table><tr><th>Chỉ số</th><th>T10</th><th>T11</th><th>Mục tiêu</th><th>Cảnh báo</th></tr>${arr.map(it => `<tr><td>${esc(it.ten)}<div class="mk-n" style="margin:0;font-size:11px">${esc(it.phuTrach || '')}</div></td><td>${it.t10 != null ? so(it.t10) : '–'}</td><td>${it.t11 != null ? so(it.t11) : '–'}${it.t11GhiChu ? `<div class="mk-n" style="margin:0;font-size:11px">${esc(it.t11GhiChu)}</div>` : ''}</td><td>${it.mucTieu != null ? so(it.mucTieu) : it.mucTieuThang != null ? so(it.mucTieuThang) : '–'} ${esc(it.donVi || '')}</td><td>${esc(it.canhBao || '')}</td></tr>`).join('')}</table></div>`).join('') + '</div>';
+    }
+    if (tong) {
+      h += `<div class="mk-card"><h3>Hiệu quả chương trình khuyến mại</h3><p class="mk-n" style="margin:0">${esc((r.km || {}).ghiChu || '')}</p></div>
+      <div class="mk-card"><h3>Việc tồn đọng sàn / web</h3>${(r.viec || []).map(x => `<div class="mk-item"><div class="t"><b>${esc(x.text)}</b>${x.kenh ? chip(x.kenh, 'b') : ''}${x.st === 'xong' ? chip('Xong', 'ok') : chip('Mở', 'w')}</div><div class="mk-n" style="margin:2px 0">${esc(tenCua(x.user))} · ${dmy(x.time)}</div><button class="mk-btn s" data-a="viecXong" data-id="${x.id}" data-mo="${x.st === 'xong' ? 1 : 0}">${x.st === 'xong' ? 'Mở lại' : '✓ Xong'}</button></div>`).join('') || '<p class="mk-n">Chưa có việc nào.</p>'}
+        <div class="mk-row"><input id="mk-viec-in" placeholder="Việc cần xử lý (vd: Shopee – sửa 1.200 SP thiếu tổ chức chịu trách nhiệm)" style="flex:1;min-width:200px"><select id="mk-viec-kenh"><option>Web</option><option>Shopee</option><option>TikTok</option><option>Mixsport</option></select><button class="mk-btn p" data-a="viecThem">+ Thêm</button></div></div>`;
+    }
+    $('mk-nd').innerHTML = h;
+  };
+
+  /* ----- Trợ lý AI của Hòa ----- */
+  S.aiTin = []; S.aiId = 0;
+  TAB.ai = async () => {
+    $('mk-nd').innerHTML = `<div class="mk-card"><h3>🤖 Trợ lý AI – Quản trị web & sàn <span class="r mk-n" style="font-weight:400">Chỉ Hòa Lương và anh thấy · AI trả lời theo giờ (8:50–17:50)</span></h3>
+      <div class="mk-chat"><div class="mk-ds" id="mk-ds"><div class="mk-load">Đang tải…</div></div>
+      <div class="mk-go"><button class="mk-btn" data-a="aiKem" title="Gửi file">📎</button><input type="file" id="mk-aif" style="display:none"><textarea id="mk-ai-nhap" rows="1" placeholder="Hỏi hoặc giao việc cho AI… (đính kèm file được)"></textarea><button class="mk-btn p" data-a="aiGui">Gửi</button></div></div>
+      <div class="mk-chips"><button data-a="aiNhanh" data-gui="1" data-t="Đẩy tồn file mới: em vừa up file lên mục Tồn & đẩy tồn, kiểm tra giúp chị tình trạng lần đẩy gần nhất.">Đẩy tồn file mới</button><button data-a="aiNhanh" data-t="Tra tồn mã ">Tra tồn 1 mã</button><button data-a="aiNhanh" data-gui="1" data-t="Báo cáo kênh tuần này: doanh số Web, Shopee, Mixsport, TikTok so tuần trước và so chỉ tiêu.">Báo cáo kênh tuần</button><button data-a="aiNhanh" data-t="Soạn CTKM: ">Soạn CTKM</button></div>
+      <div class="mk-n" id="mk-ai-tt">Tra cứu thì AI trả lời luôn; việc làm thật trên sàn/web (sửa listing, cài CTKM…) AI sẽ gửi nút <b>Duyệt</b> cho bạn trước khi làm.</div></div>`;
+    const ta = $('mk-ai-nhap'); ta.oninput = () => { ta.style.height = 'auto'; ta.style.height = Math.min(130, ta.scrollHeight) + 'px'; };
+    ta.onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey && !/Mobi|Android|iPhone/i.test(navigator.userAgent)) { e.preventDefault(); aiGui(); } };
+    S.aiTin = []; S.aiId = 0; await aiTai(true);
+    if (innerWidth <= 760) setTimeout(() => { const c = document.querySelector('.mk-chat'); if (c) c.scrollIntoView({ block: 'start' }); }, 80);
+  };
+  async function aiTai(dau) {
+    if (!$('mk-ds') || S.tab !== 'ai') return;
+    const r = await api('aiDs', { sau: 0 }); if (!$('mk-ds')) return;
+    S.aiTin = r.tin; S.aiId = S.aiTin.length ? S.aiTin[S.aiTin.length - 1].id : 0; aiVe(dau);
+  }
+  function aiVe(cuoi) {
+    const ds = $('mk-ds'); if (!ds) return; const gan = ds.scrollHeight - ds.scrollTop - ds.clientHeight < 90;
+    ds.innerHTML = S.aiTin.length ? S.aiTin.map(x => { const ai = x.tu === 'ai', a = x.act;
+      return `<div class="mk-mr ${ai ? '' : 'me'}">${ai ? '<span class="mk-av" style="width:30px;height:30px;font-size:15px;background:#0F172A">AI</span>' : avHtml(x.user, 30)}<div class="mk-tn ${ai ? '' : 'me'}">${linkify(x.text)}${x.fname ? `<br>📎 ${ai && x.flink ? `<a href="${esc(x.flink)}" target="_blank" rel="noopener">${esc(x.fname)}</a>` : esc(x.fname)}` : ''}
+        ${a ? `<div class="mk-act" style="color:var(--ink)"><b>${esc(a.nhan)}</b><br>${esc(a.mota)}<div class="mk-row" style="margin-top:6px">${a.st === 'cho' ? `<button class="mk-btn g s" data-a="aiDuyet" data-ok="1" data-id="${x.id}">✓ Duyệt</button><button class="mk-btn s" data-a="aiDuyet" data-ok="0" data-id="${x.id}">Không</button>` : a.st === 'duyet' ? (a.xl ? chip('Đã duyệt · AI đã làm xong', 'ok') + ` <small>${esc(a.kq || '')}</small>` : chip('Đã duyệt · AI sẽ làm ở lượt kế tiếp', 'b')) : chip('Đã từ chối', 'n')}</div></div>` : ''}
+        <div class="t">${ai ? 'Trợ lý AI' : esc(x.user === S.me.user ? 'Tôi' : tenCua(x.user))} · ${gio(x.time)}${!ai && x.doc && String(x.doc).indexOf('đã đọc') === 0 ? ' · ✓ AI đã đọc' : ''}</div></div></div>`; }).join('') : '<p class="mk-n">Chưa có tin nào. Hỏi AI ở ô bên dưới hoặc bấm một gợi ý nhanh.</p>';
+    if (cuoi || gan) ds.scrollTop = ds.scrollHeight;
+  }
+  async function aiGui(file) {
+    if (S.aiBusy) return; const ta = $('mk-ai-nhap'), tt = $('mk-ai-tt'), text = ta.value.trim(); if (!text && !file) return;
+    if (file && file.size > 10 * 1024 * 1024) { tt.textContent = 'File quá 10MB.'; return; }
+    S.aiBusy = true; try { await api('aiGui', { text: file ? '' : text, file: file ? { name: file.name, b64: await docB64(file), type: file.type } : undefined }); if (!file) { ta.value = ''; ta.style.height = 'auto'; } await aiTai(false); aiVe(true); } catch (e) { tt.textContent = 'Chưa gửi được: ' + e.message; }
+    S.aiBusy = false;
+  }
 
   /* ----- tài khoản (admin) ----- */
   TAB.tk = async () => {
