@@ -191,7 +191,7 @@ a{color:#2563EB}
     <p class="mk-n">Mật khẩu chỉ lưu dạng mã hóa – kể cả anh và AI cũng không xem được.</p></div>`;
   }
   function tabs() {
-    const t = [['tq', 'Tổng quan'], ['td', '💬 Trao đổi'], ['lich', 'Lịch làm việc'], ['phieu', 'Phiếu yêu cầu'], ['quay', 'Lịch quay SP']];
+    const t = [['tq', 'Tổng quan'], ['td', '💬 Trao đổi'], ['lich', 'Lịch làm việc'], ['phieu', 'Phiếu yêu cầu'], ['quay', 'Lịch quay SP'], ['kenh', '📈 Phát triển kênh']];
     if (S.me.vai === 'lead' || S.me.vai === 'admin') t.push(['ton', '📦 Tồn & đẩy tồn']);
     t.push(['san', 'Web & Sàn']);
     if (S.me.vai === 'lead' || S.me.vai === 'admin') t.push(['ai', '🤖 Trợ lý AI']);
@@ -222,7 +222,7 @@ a{color:#2563EB}
       if (S.tab === 'td' && r.chat > S.chatId) chatTai(false);
     } catch (e) {}
   }
-  function refreshTab() { if (S.tab === 'ai') { aiTai(false).catch(() => {}); return; } if (['tq', 'lich', 'phieu', 'quay', 'tk', 'ton', 'san'].indexOf(S.tab) >= 0 && !document.activeElement.closest('form, #mk-nd input, #mk-nd textarea, #mk-nd select')) { (TAB[S.tab])().catch(() => {}); } }
+  function refreshTab() { if (S.tab === 'ai') { aiTai(false).catch(() => {}); return; } if (['tq', 'lich', 'phieu', 'quay', 'tk', 'ton', 'san', 'kenh'].indexOf(S.tab) >= 0 && !document.activeElement.closest('form, #mk-nd input, #mk-nd textarea, #mk-nd select')) { (TAB[S.tab])().catch(() => {}); } }
 
   /* ---------- hành động bấm ---------- */
   const ACT = {
@@ -263,6 +263,7 @@ a{color:#2563EB}
     chatGui: () => chatGui(), chatKem: () => $('mk-file').click(),
     nhac: b => { const t = $('mk-nhap'); t.value += (t.value && !/\s$/.test(t.value) ? ' ' : '') + '@' + b.dataset.u + ' '; t.focus(); },
     // tài khoản
+    kenhChon: b => { S.kenhSel = b.dataset.k; chuyenTab('kenh'); },
     tonChon: () => $('mk-tonf').click(),
     tonHuy: async b => { if (!confirm('Hủy lần đẩy này?')) return; await lam(b, () => api('tonHuy', { id: Number(b.dataset.id) }), 'Đã hủy'); chuyenTab('ton'); },
     tonQ: async b => { await lam(b, () => api('tonQuyet', b.dataset.ma ? { id: Number(b.dataset.id), ma: b.dataset.ma, quyet: b.dataset.q } : { id: Number(b.dataset.id), tatca: true, quyet: b.dataset.q }), b.dataset.q === 'dung' ? 'Đã chọn: đúng, đẩy' : 'Đã chọn: sai, giữ cũ'); chuyenTab('ton'); },
@@ -583,7 +584,8 @@ a{color:#2563EB}
 
   /* ----- Web & Sàn ----- */
   TAB.san = async () => {
-    const r = (await api('sanGet')).san, m = S.me, tong = m.vai === 'admin' || m.vai === 'lead';
+    const [rs, kg] = await Promise.all([api('sanGet'), api('kenhGet').catch(() => ({ kenh: null }))]), r = rs.san, m = S.me, tong = m.vai === 'admin' || m.vai === 'lead';
+    const kt = {}; if (kg.kenh) { Object.entries(kg.kenh.kenh || {}).forEach(([k, v]) => { kt[k] = { thang: v.doanhSo.thang.tong, truoc: v.doanhSo.thang.thangTruoc.tong, tuan: (v.doanhSo.tuan[v.doanhSo.tuan.length - 1] || {}).tong, thangId: v.doanhSo.thang.thang }; }); Object.entries(kg.kenh.khac || {}).forEach(([k, v]) => { kt[k] = { thang: v.thang.tong, truoc: v.thang.thangTruoc.tong, tuan: (v.tuan[v.tuan.length - 1] || {}).tong, thangId: v.thang.thang }; }); }
     if (!r) { $('mk-nd').innerHTML = '<div class="mk-card"><h3>Web & Sàn</h3><p class="mk-n">Chưa có số liệu (tự cập nhật mỗi sáng cùng báo cáo 07:25).</p></div>'; return; }
     const pc = v => v == null ? '–' : (v > 0 ? '▲ ' : v < 0 ? '▼ ' : '') + Math.abs(v).toLocaleString('vi-VN') + '%', mau = v => v == null ? '' : v >= 0 ? '#15803D' : '#DC2626', tr = v => v == null ? '–' : Number(v).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + 'tr';
     let h = `<p class="mk-n" style="margin:0 0 8px">${esc(r.ghiChu)} Cập nhật ${esc(r.at || '')}.</p>`;
@@ -595,7 +597,7 @@ a{color:#2563EB}
       <div class="mk-card"><h3>Chỉ tiêu tuần tháng 12 <span class="r mk-n" style="font-weight:400">đề xuất · mức sàn = ngưỡng cảnh báo</span></h3><div class="mk-wrap"><table><tr><th>Kênh</th><th>Phụ trách</th><th>Tháng</th><th>Mức sàn tháng</th>${['T1', 'T2', 'T3', 'T4', 'T5'].map(t => `<th>${t}<br><small>(sàn)</small></th>`).join('')}</tr>${r.tuanCT.map(k => `<tr><td>${esc(k.ten)}</td><td>${esc(k.phuTrach || '')}</td><td>${tr(k.thang)}</td><td>${tr(k.mucSan)}</td>${['T1', 'T2', 'T3', 'T4', 'T5'].map(t => `<td>${tr(k.tuan[t])}<br><small class="mk-n">${tr(k.tuanSan[t])}</small></td>`).join('')}</tr>`).join('')}</table></div><p class="mk-n">Tuần: T1 01–06/12 · T2 07–13/12 · T3 14–20/12 · T4 21–27/12 · T5 28–31/12. Dưới mức sàn của tuần = cảnh báo.</p></div>`;
     }
     const TK = Object.entries(r.tiktok || {});
-    if (TK.length) h += `<div class="mk-card"><h3>TikTok theo kênh ${tong ? '' : '– kênh của bạn'} <span class="r mk-n" style="font-weight:400">GMV tạo, mục tiêu tháng 12</span></h3><div class="mk-wrap"><table><tr><th>Kênh</th><th>Tỷ trọng T12</th><th>GMV tạo tháng</th><th>Giữ lại tháng</th>${['T1', 'T2', 'T3', 'T4', 'T5'].map(t => `<th>${t}</th>`).join('')}</tr>${TK.map(([, v]) => `<tr><td>${esc(v.ten)}</td><td>${v.tyTrongT12 != null ? v.tyTrongT12 + '%' : '–'}</td><td>${tr(v.gmvTaoThangTr)}</td><td>${tr(v.giuLaiThangTr)}</td>${['T1', 'T2', 'T3', 'T4', 'T5'].map(t => `<td>${tr((v.gmvTaoTuanTr || {})[t])}</td>`).join('')}</tr>`).join('')}</table></div><p class="mk-n">Số thực tế theo từng kênh TikTok: <b>cần nguồn</b> (đang nằm ở app TikTok Shop, chưa nối vào đây).</p></div>`;
+    if (TK.length) h += `<div class="mk-card"><h3>TikTok theo kênh ${tong ? '' : '– kênh của bạn'} <span class="r mk-n" style="font-weight:400">GMV tạo, mục tiêu tháng 12</span></h3><div class="mk-wrap"><table><tr><th>Kênh</th><th>Thực tế T11 (đến nay)</th><th>Tuần này</th><th>Cùng kỳ T10</th><th>Tỷ trọng T12</th><th>Mục tiêu GMV T12</th><th>Giữ lại T12</th>${['T1', 'T2', 'T3', 'T4', 'T5'].map(t => `<th>${t}</th>`).join('')}</tr>${TK.map(([id, v]) => { const x = kt[id]; return `<tr><td>${esc(v.ten)}</td><td>${x ? '<b>' + tr(x.thang) + '</b>' : '–'}</td><td>${x ? tr(x.tuan) : '–'}</td><td>${x ? tr(x.truoc) : '–'}</td><td>${v.tyTrongT12 != null ? v.tyTrongT12 + '%' : '–'}</td><td>${tr(v.gmvTaoThangTr)}</td><td>${tr(v.giuLaiThangTr)}</td>${['T1', 'T2', 'T3', 'T4', 'T5'].map(t => `<td>${tr((v.gmvTaoTuanTr || {})[t])}</td>`).join('')}</tr>`; }).join('')}</table></div><p class="mk-n">Thực tế = GMV tạo theo ngày đặt (tiền khách trả theo giá shop, gồm cả đơn sau đó hủy) từ đơn TikTok. Chi tiết từng kênh ở mục <b>📈 Phát triển kênh</b>.</p></div>`;
     for (const [k, v] of Object.entries(r.kpi || {})) {
       if (!v || !v.nhom) continue;
       const TEN = { doanhSo: 'Doanh số', chatLuongDon: 'Chất lượng đơn', live: 'LIVE', video: 'Video' };
@@ -641,6 +643,52 @@ a{color:#2563EB}
     S.aiBusy = true; try { await api('aiGui', { text: file ? '' : text, file: file ? { name: file.name, b64: await docB64(file), type: file.type } : undefined }); if (!file) { ta.value = ''; ta.style.height = 'auto'; } await aiTai(false); aiVe(true); } catch (e) { tt.textContent = 'Chưa gửi được: ' + e.message; }
     S.aiBusy = false;
   }
+
+
+  /* ----- Phát triển kênh TikTok (28/11/2026) ----- */
+  const svgLine = (pts, w, h, mau) => { if (pts.length < 2) return '<p class="mk-n">Chưa đủ dữ liệu để vẽ.</p>'; const v = pts.map(p => p.y), lo = Math.min(...v), hi = Math.max(...v), sp = hi - lo || 1, X = i => 8 + i * (w - 16) / (pts.length - 1), Y = y => 8 + (h - 24) * (1 - (y - lo) / sp);
+    return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;max-height:200px"><polyline fill="none" stroke="${mau || '#DC2626'}" stroke-width="2.2" points="${pts.map((p, i) => X(i) + ',' + Y(p.y)).join(' ')}"/>${pts.map((p, i) => i === 0 || i === pts.length - 1 ? `<circle cx="${X(i)}" cy="${Y(p.y)}" r="3.5" fill="${mau || '#DC2626'}"/>` : '').join('')}<text x="8" y="${h - 4}" font-size="11" fill="#94A3B8">${esc(pts[0].x)}</text><text x="${w - 8}" y="${h - 4}" font-size="11" fill="#94A3B8" text-anchor="end">${esc(pts[pts.length - 1].x)}</text><text x="8" y="12" font-size="11" fill="#94A3B8">${so(hi)}</text><text x="8" y="${h - 18}" font-size="11" fill="#94A3B8">${so(lo)}</text></svg>`; };
+  const svgBars = (items, w, h, opt) => { opt = opt || {}; const mx = Math.max(1, ...items.map(i => i.tong != null ? i.tong : i.v), ...(opt.lines || [])), bw = (w - 16) / items.length, Y = y => h - 22 - (h - 34) * y / mx;
+    return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;max-height:220px">${(opt.lines || []).map(l => `<line x1="8" x2="${w - 8}" y1="${Y(l)}" y2="${Y(l)}" stroke="#16A34A" stroke-dasharray="4 3"/><text x="${w - 8}" y="${Y(l) - 3}" font-size="10" fill="#16A34A" text-anchor="end">${l}</text>`).join('')}${items.map((it, i) => { const x = 8 + i * bw + bw * .15, bwi = bw * .7; if (it.a != null) { const ha = (h - 34) * it.a / mx, hb = (h - 34) * it.b / mx; return `<rect x="${x}" y="${h - 22 - hb - ha}" width="${bwi}" height="${ha}" fill="#DC2626" opacity=".9"/><rect x="${x}" y="${h - 22 - hb}" width="${bwi}" height="${hb}" fill="#2563EB" opacity=".9"/><text x="${x + bwi / 2}" y="${h - 22 - hb - ha - 3}" font-size="10" fill="#94A3B8" text-anchor="middle">${so(Math.round(it.a + it.b))}</text><text x="${x + bwi / 2}" y="${h - 6}" font-size="10" fill="#94A3B8" text-anchor="middle">${esc(it.l)}</text>`; } const hv = (h - 34) * it.v / mx; return `<rect x="${x}" y="${h - 22 - hv}" width="${bwi}" height="${hv}" fill="${it.c || '#DC2626'}" opacity=".9"/><text x="${x + bwi / 2}" y="${h - 22 - hv - 3}" font-size="10" fill="#94A3B8" text-anchor="middle">${so(it.v)}</text><text x="${x + bwi / 2}" y="${h - 6}" font-size="10" fill="#94A3B8" text-anchor="middle">${esc(it.l)}</text>`; }).join('')}</svg>`; };
+  const hbar = (o, ten) => { const e = Object.entries(o || {}).filter(([, v]) => v != null); if (!e.length) return ''; const GT = { Male: 'Nam', Female: 'Nữ', Other: 'Khác' }; return `<div><b>${esc(ten)}</b>${e.map(([k, v]) => `<div style="display:flex;gap:6px;align-items:center;font-size:13px;margin:3px 0"><span style="width:92px;flex:none">${esc(GT[k] || k)}</span><span class="mk-bar" style="flex:1;margin:0"><i style="width:${Math.min(100, v)}%"></i></span><span style="width:44px;text-align:right">${v}%</span></div>`).join('')}</div>`; };
+  const ddmm = s2 => s2 ? s2.slice(8) + '/' + s2.slice(5, 7) : '';
+  const trk = v => v == null ? '–' : Number(v).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + 'tr';
+  TAB.kenh = async () => {
+    const r = await api('kenhGet'), k = r.kenh;
+    if (!k || !Object.keys(k.kenh).length) { $('mk-nd').innerHTML = '<div class="mk-card"><h3>📈 Phát triển kênh TikTok</h3><p class="mk-n">Chưa có số liệu (tự cập nhật mỗi sáng).</p></div>'; return; }
+    const ids = Object.keys(k.kenh); if (!S.kenhSel || ids.indexOf(S.kenhSel) < 0) S.kenhSel = ids[0];
+    const v = k.kenh[S.kenhSel], ds = v.doanhSo, tt = v.tangTruong, nd = v.noiDung, th = ds.thang, pc = x => x == null ? '–' : (x > 0 ? '▲ ' : x < 0 ? '▼ ' : '') + Math.abs(x).toLocaleString('vi-VN') + '%', mau = x => x == null ? '' : x >= 0 ? '#15803D' : '#DC2626';
+    const tuanN = nd.tuan.filter(t => t.dayDu); const tCuoi = tuanN[tuanN.length - 1];
+    const dang = nd.tuan[nd.tuan.length - 1];
+    let h = ids.length > 1 ? `<div class="mk-chips">${ids.map(i => `<button data-a="kenhChon" data-k="${i}"${i === S.kenhSel ? ' class="on"' : ''}>${esc(k.kenh[i].ten)}</button>`).join('')}</div>` : '';
+    h += `<p class="mk-n" style="margin:0 0 8px"><b>${esc(v.ten)}</b> · phụ trách ${esc(v.phuTrach)} · số liệu đến ${ddmm(v.denNgay)} · lấy ${dmy(v.capNhat || k.at)} ${v.nguon === 'cong-khai' ? chip('Số công khai', 'w') : v.nguon === 'studio' ? chip('Từ TikTok Studio', 'ok') : ''}</p>`;
+    // 1) DOANH SỐ
+    h += `<div class="mk-card"><h3>1. Doanh số thực tế (GMV tạo) <span class="r mk-n" style="font-weight:400">triệu VND</span></h3>
+      <div class="mk-grid" style="margin-bottom:8px"><div class="mk-k"><small>Tháng ${th.thang.slice(5)} đến nay</small><b>${trk(th.tong)}</b><small>LIVE ${trk(th.live)} · video ${trk(th.video)} · ${so(th.don)} đơn</small></div>
+        <div class="mk-k"><small>Cùng kỳ tháng trước</small><b>${trk(th.cungKyThangTruoc)}</b><small style="color:${mau(th.cungKyThangTruoc ? (th.tong / th.cungKyThangTruoc - 1) * 100 : null)}">${th.cungKyThangTruoc ? pc(Math.round((th.tong / th.cungKyThangTruoc - 1) * 1000) / 10) : ''}</small></div>
+        <div class="mk-k"><small>Mục tiêu GMV tháng 12</small><b>${trk(th.mucTieuT12)}</b><small>tỷ trọng ${th.tyTrongT12 != null ? th.tyTrongT12 + '%' : '–'} · giữ lại ${trk(th.giuLaiMucTieuT12)}</small></div>
+        <div class="mk-k"><small>Tuần này vs tuần trước</small><b>${ds.soKyTruoc ? trk(ds.soKyTruoc.tuanNay) : '–'}</b><small>${ds.soKyTruoc ? 'trước ' + trk(ds.soKyTruoc.tuanTruoc) + ' <b style="color:' + mau(ds.soKyTruoc.pct) + '">' + pc(ds.soKyTruoc.pct) + '</b>' + (ds.soKyTruoc.luuY ? '<br>' + esc(ds.soKyTruoc.luuY) : '') : ''}</small></div></div>
+      ${svgBars(ds.tuan.map(t => ({ l: ddmm(t.tu), a: t.live, b: t.video })), 560, 200)}<p class="mk-n" style="margin:0"><span style="color:#2563EB">■</span> video &nbsp; <span style="color:#DC2626">■</span> LIVE · cột = tuần T2–CN (tuần cuối chưa đủ ngày)</p>
+      <div class="mk-wrap"><table><tr><th>Tuần</th><th>LIVE</th><th>Video</th><th>Tổng</th><th>Đơn</th></tr>${ds.tuan.map(t => `<tr><td>${ddmm(t.tu)}–${ddmm(t.den)}${t.dayDu ? '' : '*'}</td><td>${trk(t.live)}</td><td>${trk(t.video)}</td><td><b>${trk(t.tong)}</b></td><td>${so(t.don)}</td></tr>`).join('')}</table></div>
+      <h3 style="margin-top:12px">Tuần chỉ tiêu tháng 12</h3><div class="mk-wrap"><table><tr><th>Tuần</th><th>Mục tiêu</th><th>Thực tế</th><th>% đạt</th></tr>${ds.tuanCT.map(t => `<tr><td>${t.k} ${ddmm(t.tu)}–${ddmm(t.den)}</td><td>${trk(t.mucTieu)}</td><td>${t.thuc != null ? trk(t.thuc) : '<span class="mk-n">chưa tới</span>'}</td><td>${t.tyLe != null ? (t.tyLe < 85 && t.dayDu ? chip(t.tyLe + '%', 'r') : t.tyLe + '%') : '–'}</td></tr>`).join('')}</table></div>
+      <p class="mk-n">${esc(ds.ghiChu)} Cảnh báo khi một tuần đủ ngày đạt dưới 85% mục tiêu tuần.</p></div>`;
+    // 2) TĂNG TRƯỞNG
+    const nk = tt.nhanKhau, mt = tt.moiTuanNay, mt0 = tt.moiTuanTruoc;
+    h += `<div class="mk-card"><h3>2. Tăng trưởng kênh</h3><div class="mk-grid" style="margin-bottom:8px"><div class="mk-k"><small>Tổng follow</small><b>${tt.follow != null ? so(tt.follow) : '–'}</b>${tt.tongVideo != null ? `<small>${so(tt.tongVideo)} video · ${so(tt.thich)} thích</small>` : ''}</div>
+        <div class="mk-k"><small>Follow mới tuần này</small><b>${mt ? (mt.moi >= 0 ? '+' : '') + so(mt.moi) : '–'}</b><small>${mt ? ddmm(mt.tu) + '–' + ddmm(mt.den) + (mt.dayDu ? '' : ' (chưa đủ tuần)') : 'cần ≥ 2 ngày số liệu'}</small></div>
+        <div class="mk-k"><small>Tuần trước</small><b>${mt0 ? (mt0.moi >= 0 ? '+' : '') + so(mt0.moi) : '–'}</b></div></div>
+      ${svgLine(tt.lichSu.map(x => ({ x: ddmm(x.ngay), y: x.follow })), 560, 160)}<p class="mk-n" style="margin:0">Follow theo ngày (${tt.lichSu.length} ngày gần nhất).</p>
+      ${tt.moiTuan.length ? svgBars(tt.moiTuan.map(t => ({ l: ddmm(t.tu), v: t.moi, c: t.moi >= 0 ? '#16A34A' : '#DC2626' })), 560, 150) + '<p class="mk-n" style="margin:0">Follow ròng mỗi tuần.</p>' : ''}
+      <p class="mk-n">Mục tiêu: ${esc(tt.mucTieu)}.${tt.ghiChu ? ' ' + esc(tt.ghiChu) : ''}</p>
+      ${nk ? `<h3 style="margin-top:12px">Chân dung (từ TikTok Studio, lấy ${ddmm(nk.ngay)})</h3><div class="mk-grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))"><div class="mk-card" style="margin:0"><b>Người theo dõi</b>${hbar(nk.theoDoi.gioiTinh, 'Giới tính')}${hbar(nk.theoDoi.tuoi, 'Độ tuổi')}${hbar(Object.fromEntries((nk.theoDoi.khuVuc.thanhPho || [])), 'Khu vực (thành phố)')}</div><div class="mk-card" style="margin:0"><b>Người xem (7 ngày)</b>${hbar(nk.nguoiXem.gioiTinh, 'Giới tính')}${hbar(nk.nguoiXem.tuoi, 'Độ tuổi')}${hbar(Object.fromEntries((nk.nguoiXem.khuVuc.thanhPho || [])), 'Khu vực (thành phố)')}</div></div>` : '<p class="mk-n"><b>Chân dung người xem / người theo dõi:</b> cần đăng nhập TikTok Studio của kênh này trên máy (hiện chỉ có số công khai).</p>'}</div>`;
+    // 3) HIỆU QUẢ NỘI DUNG
+    h += `<div class="mk-card"><h3>3. Hiệu quả nội dung <span class="r mk-n" style="font-weight:400">mức ${nd.muc.min}–${nd.muc.max} video/tuần</span></h3>
+      ${svgBars(nd.tuan.map(t => ({ l: ddmm(t.tu), v: t.soVideo, c: t.soVideo < nd.muc.min ? '#D97706' : t.soVideo > nd.muc.max ? '#DC2626' : '#16A34A' })), 560, 180, { lines: [nd.muc.min, nd.muc.max] })}<p class="mk-n" style="margin:0">Số video đăng mỗi tuần (xanh = trong mức, cam = thiếu, đỏ = vượt).</p>
+      <div class="mk-wrap"><table><tr><th>Tuần</th><th>Video</th><th>So mức</th><th>Lượt xem</th><th>View TB/video</th><th>Tương tác</th><th>GMV từ video</th></tr>${nd.tuan.map(t => `<tr><td>${ddmm(t.tu)}–${ddmm(t.den)}</td><td>${t.soVideo}</td><td>${t.soVideo < nd.muc.min ? chip('thiếu ' + (nd.muc.min - t.soVideo), 'w') : t.soVideo > nd.muc.max ? chip('vượt ' + (t.soVideo - nd.muc.max), 'r') : chip('đạt', 'ok')}</td><td>${so(t.view)}</td><td>${so(t.viewTB)}</td><td>${t.tuongTac != null ? t.tuongTac + '%' : '–'}</td><td>${trk(t.gmvVideo)}</td></tr>`).join('')}</table></div>
+      <p class="mk-n">${esc(nd.ghiChu)} Tương tác = (thích + bình luận + chia sẻ + lưu) ÷ lượt xem.</p>
+      <h3 style="margin-top:12px">Top video 30 ngày gần nhất (theo lượt xem)</h3><div class="mk-wrap"><table><tr><th>#</th><th>Đăng</th><th>Lượt xem</th><th>Thích</th><th>Bình luận</th><th>Chia sẻ</th><th></th></tr>${nd.top.map((x, i) => `<tr><td>${i + 1}</td><td>${ddmm(x.ngay)}</td><td>${so(x.view)}</td><td>${x.like != null ? so(x.like) : '–'}</td><td>${x.cmt != null ? so(x.cmt) : '–'}</td><td>${x.share != null ? so(x.share) : '–'}</td><td><a href="${esc(x.link)}" target="_blank" rel="noopener">Xem video ↗</a></td></tr>`).join('') || '<tr><td colspan="7" class="mk-n">Chưa có.</td></tr>'}</table></div></div>`;
+    $('mk-nd').innerHTML = h;
+  };
 
   /* ----- tài khoản (admin) ----- */
   TAB.tk = async () => {
